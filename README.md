@@ -14,10 +14,7 @@ Can be reduced to :: by clik
 ## Demo 
 ![demo](Assets/NameVaultStatusBar.gif)
 
-## Development (Add this to your README)
-
-### Optional (SASS):
-If you add a `styles.scss` file to the src folder, it will be automatically converted to CSS when running commands like npm run dev or npm run build.   
+## Development (Add this to your README) 
   
 ### Environment Setup
   
