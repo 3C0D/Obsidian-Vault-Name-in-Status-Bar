@@ -1,6 +1,18 @@
-# Obsidian Sample Plugin Modifications
+# Vault Name in Status Bar  
 
-The goal of this "sample" is to automate the development and publication processes on github, including the creation of releases.
+New: change color and size in settings
+
+Add your vault name to the status bar.
+Can be reduced to :: by clik 
+![img1](./Assets/enlarged.jpg)  ![img2](./Assets/reduced.jpg)  
+
+## Settings
+- Option to reduce the title in StatusBar at start
+- Set color and size
+
+
+## Demo 
+![demo](Assets/NameVaultStatusBar.gif)
 
 ## Development (Add this to your README)
 
