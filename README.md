@@ -9,7 +9,7 @@ Add your vault name to the status bar in Obsidian, with customizable appearance 
 - Displays your current vault name in the status bar
 - Click to open a menu for quick vault switching
 - Customizable appearance
-- Vaut name length customizable. e.g: length=11 "A very long..."
+- Vaut name length customizable
 
 ## Settings
 

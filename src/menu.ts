@@ -6,6 +6,18 @@ addIcon("buttonSVG", vaults_picker);
 
 export function vaultsMenu(evt: MouseEvent) {
     const menu = new Menu()
+
+    menu.addItem((item) => {
+        item
+            .setTitle(`${this.settings.reducedAtStart ? "Maximize" : "Minimize"} Vault Name`)
+            .onClick(async () => {
+                this.settings.reducedAtStart = !this.settings.reducedAtStart
+                await this.saveSettings();
+            })
+    })
+
+    menu.addSeparator();
+
     const currentVaultPath = this.app.vault.adapter.basePath;
 
     vaultPaths.forEach((vaultPath) => {

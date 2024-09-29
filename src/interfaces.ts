@@ -3,6 +3,7 @@ export interface SBVNSettings {
 	fontSize: number;
 	maxTitleLength: number;
     enableMaxLength: boolean;
+    reducedAtStart: boolean;
 }
 
 

@@ -11,6 +11,7 @@ export default class StatusBarVaultName extends Plugin {
 	settings: SBVNSettings
 	title: HTMLDivElement
 
+
 	async onload() {
 		await this.loadSettings();
 		this.addSettingTab(new Settings(this.app, this));
@@ -18,7 +19,7 @@ export default class StatusBarVaultName extends Plugin {
 		const statusBar = document.querySelector('.status-bar')
 		this.title = document.createElement('div');
 		statusBar?.prepend(this.title)
-		this.title.innerHTML = `${chevrons} ${vaultName}`;
+		this.title.innerHTML = this.settings.reducedAtStart ? `${chevrons}`:`${chevrons} ${vaultName}`;
 		this.title.classList.add("status-bar-vault-name");
 		this.updateTitleStyle();
 		this.title.addEventListener('click', vaultsMenu.bind(this));
@@ -48,11 +49,7 @@ export default class StatusBarVaultName extends Plugin {
 	}
 
 	updateVaultName() {
-        const vaultName = this.getTruncatedVaultName(this.app.vault.getName());
-        const chevrons = this.title.querySelector('.lucide.lucide-chevrons-up-down');
-        this.title.innerHTML = '';
-		if (chevrons) this.title.appendChild(chevrons);
-        this.title.appendChild(document.createTextNode(` ${vaultName} `));
+		this.title.innerHTML = this.settings.reducedAtStart ? `${chevrons}` : `${chevrons} ${this.getTruncatedVaultName(this.app.vault.getName())}`;
     }
 
     getTruncatedVaultName(name: string): string {
