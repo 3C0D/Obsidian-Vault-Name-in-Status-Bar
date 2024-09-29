@@ -2,6 +2,8 @@
 
 Add your vault name to the status bar in Obsidian, with customizable appearance and functionality.
 
+![alt text](Assets/example.png)
+
 ## Features
 
 - Displays your current vault name in the status bar
