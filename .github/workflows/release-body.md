@@ -1,1 +1,1 @@
-improved menu presentation
+minimize vault name added to menu
