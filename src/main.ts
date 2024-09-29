@@ -17,9 +17,9 @@ export default class StatusBarVaultName extends Plugin {
 		const vaultName = this.app.vault.getName();
 		const statusBar = document.querySelector('.status-bar')
 		this.title = document.createElement('div');
+		statusBar?.prepend(this.title)
 		this.title.innerHTML = `${chevrons} ${vaultName}`;
 		this.title.classList.add("status-bar-vault-name");
-		statusBar?.prepend(this.title)
 		this.updateTitleStyle();
 		this.title.addEventListener('click', vaultsMenu.bind(this));
 	}
