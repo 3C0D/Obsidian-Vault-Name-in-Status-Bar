@@ -1,21 +1,42 @@
 # Vault Name in Status Bar  
 
-New: change color and size in settings
+Add your vault name to the status bar in Obsidian, with customizable appearance and functionality.
 
-Add your vault name to the status bar.
-Can be reduced to :: by clik 
-![img1](./Assets/enlarged.jpg)  ![img2](./Assets/reduced.jpg)  
+## Features
+
+- Displays your current vault name in the status bar
+- Click to open a menu for quick vault switching
+- Customizable appearance
+- Vaut name length customizable. e.g: length=11 "A very long..."
 
 ## Settings
-- Option to reduce the title in StatusBar at start
-- Set color and size
+
+- **Color**: Choose the color of the vault name in the status bar
+- **Font Size**: Adjust the font size of the vault name (in em)
+- **Enable Maximum Length**: Option to truncate the vault name if it exceeds the maximum length
+- **Maximum Length**: Set the maximum number of characters to display in the vault name
+
+## Usage
+
+- The vault name appears in the status bar
+- Click on the vault name to open a menu with options to switch to other vaults or manage vaults
+- The current vault is indicated with a checkmark in the menu
+
+## Installation
+
+1. copy files from the release
+2. install them in your vault/.obsidian/plugins/status_vault_bar or use Brat
+
+## Support
+
+If you encounter any issues or have suggestions for improvements, please open an issue on the [GitHub repository](https://github.com/3C0D/Obsidian-Vault-Name-in-Status-Bar).
+
+## License
+
+This project is licensed under the MIT License.
 
 
-## Demo 
-![demo](Assets/NameVaultStatusBar.gif)
-
-## Development (Add this to your README) 
-  
+## Development
 ### Environment Setup
   
 - **Development in the plugins folder of your vault:**
