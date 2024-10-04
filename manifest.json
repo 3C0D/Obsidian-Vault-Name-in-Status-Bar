@@ -3,7 +3,7 @@
 	"name": "Vault name in status bar",
 	"version": "2.1.0",
 	"minAppVersion": "1.1.0",
-	"description": "Vault name in status bar. can be reduced to ::",
+	"description": "Vault name in status bar and vaults menu",
 	"author": "3C0D",
 	"authorUrl": "https://github.com/3C0D",
 	"isDesktopOnly": true
