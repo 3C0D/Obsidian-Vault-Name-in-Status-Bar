@@ -1,1 +1,1 @@
-minimize vault name added to menu
+code fixes
