@@ -1,10 +1,10 @@
-import { addIcon, Menu } from "obsidian";
+import { addIcon, App, Menu } from "obsidian";
 import { vaults_picker } from "./variables";
 import { vaultPaths } from "./getVaults";
 
 addIcon("buttonSVG", vaults_picker);
 
-export function vaultsMenu(evt: MouseEvent) {
+export function vaultsMenu(app: App, evt: MouseEvent) {
     const menu = new Menu()
 
     menu.addItem((item) => {
@@ -18,7 +18,7 @@ export function vaultsMenu(evt: MouseEvent) {
 
     menu.addSeparator();
 
-    const currentVaultPath = this.app.vault.adapter.basePath;
+    const currentVaultPath = app.vault.adapter.basePath;
 
     vaultPaths.forEach((vaultPath) => {
         const vaultName = getName(vaultPath);
@@ -43,7 +43,7 @@ export function vaultsMenu(evt: MouseEvent) {
             .setTitle('Vaults')
             .setIcon("buttonSVG")
             .onClick(async () => {
-                await this.app.openVaultChooser();
+                app.openVaultChooser();
             })
 
     })
