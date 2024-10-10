@@ -1,6 +1,14 @@
-# Vault Name in Status Bar  
+# Vault Name in Status Bar
 
-Add your vault name to the status bar in Obsidian, with customizable appearance and functionality.
+## Key Features:
+
+- **Dynamic Vault Display:** Instantly view your current vault's name in the Obsidian status bar.
+- **Customizable Appearance:** Personalize the display to match your workspace, ensuring a seamless integration.
+- **Vaults Menu:** One-click access to the vaults menu for easy navigation. 
+
+## Benefits:
+
+- **Enhanced Efficiency:** This plugin provides the advantage of keeping this information always visible in the status bar, and providing another quick access to the vaults menu.
 
 ![alt text](Assets/example.png)
 
@@ -39,32 +47,43 @@ This project is licensed under the MIT License.
 
 
 ## Development
-### Environment Setup
-  
-- **Development in the plugins folder of your vault:**
-  - Set the `REAL` variable to `-1` in the `.env` file. Or delete the file. Run the usual npm commands.
 
-- **Development outside the vault:**
-  - If your plugin's source code is outside the vault, the necessary files will be automatically copied to the targeted vault. Set the paths in the .env file. Use TestVault for the development vault and RealVault to simulate production.  
-  
-- **other steps:**   
-  - You can then do `npm run version` to update the version and do the push of the changed files (package, manifest, version). Prompts will guide you.  
-  
-  - You can then do `npm run release` to create the release. Few seconds later you can see the created release in the GitHub releases.  
+This plugin uses a template that automates the development and publication processes on GitHub, including releases. You can develop either inside or outside your Obsidian vault.
+
+### Environment Setup
+
+- `main.ts` and `styles.css` must be in the `src` folder.
+- After building, `styles.css` will appear in the root folder (this is normal for the release process).
+
+#### Development Options:
+1. **Inside the vault's plugins folder:**
+   - Delete the `.env` file.
+   - Run npm commands as usual.
+
+2. **Outside the vault:**
+   - Set the paths in the `.env` file:
+     - `TestVault` for development
+     - `RealVault` for production simulation
+   - Necessary files will be automatically copied to the targeted vault.
 
 ### Available Commands
-  
-*I recommend a `npm run start` then `npm run bacp` then `npm run version` then `npm run release`. Super fast and easy.*  
-  
-- **`npm run dev` and `npm start`**: For development. 
-  `npm start` opens Visual Studio Code, runs `npm install`, and then `npm run dev`  
-  
-- **`npm run build`**: Builds the project in the folder containing the source code.  
-  
-- **`npm run real`**: Equivalent to a traditional installation of the plugin in your REAL vault.  
-  
-- **`npm run bacp`** & **`npm run acp`**: `b` stands for build, and `acp` stands for add, commit, push. You will be prompted for the commit message. 
-  
-- **`npm run version`**: Asks for the type of version update, modifies the relevant files, and then performs an add, commit, push.  
-  
-- **`npm run release`**: Asks for the release title, creates the release. This command works with the configurations in the `.github` folder. The release title can be multiline by using `\n`.
+
+- `npm run start`: Opens VS Code, runs `npm install`, then `npm run dev`
+- `npm run dev`: For development
+- `npm run build`: Builds the project
+- `npm run real`: Simulates a traditional plugin installation in your REAL vault
+- `npm run bacp`: Builds, adds, commits, and pushes (prompts for commit message)
+- `npm run acp`: Adds, commits, and pushes (without building)
+- `npm run version`: Updates version, modifies relevant files, then adds, commits, and pushes
+- `npm run release`: Creates a GitHub release (prompts for release title, can be multiline using `\n`)
+
+### Recommended Workflow
+
+1. `npm run start`
+2. `npm run bacp`
+3. `npm run version`
+4. `npm run release`
+
+### Additional Features
+
+- **obsidian-typings**: This template automatically includes obsidian-typings, providing access to additional types not present in the official API.

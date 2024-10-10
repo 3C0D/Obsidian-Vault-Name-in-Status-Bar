@@ -22,7 +22,7 @@ export default class StatusBarVaultName extends Plugin {
 		this.title.innerHTML = this.settings.reducedAtStart ? `${chevrons}`:`${chevrons} ${vaultName}`;
 		this.title.classList.add("status-bar-vault-name");
 		this.updateTitleStyle();
-		this.title.addEventListener('click', vaultsMenu.bind(this));
+		this.title.addEventListener('click', (e) => vaultsMenu(this, this.app, e));
 	}
 
 	onunload() {

@@ -1,24 +1,26 @@
 import { addIcon, App, Menu } from "obsidian";
 import { vaults_picker } from "./variables";
 import { vaultPaths } from "./getVaults";
+import StatusBarVaultName from "./main";
 
 addIcon("buttonSVG", vaults_picker);
 
-export function vaultsMenu(app: App, evt: MouseEvent) {
+export function vaultsMenu(plugin: StatusBarVaultName,app: App, evt: MouseEvent) {
     const menu = new Menu()
 
     menu.addItem((item) => {
         item
-            .setTitle(`${this.settings.reducedAtStart ? "Maximize" : "Minimize"} Vault Name`)
+            .setTitle(`${plugin.settings.reducedAtStart ? "Maximize" : "Minimize"} Vault Name`)
             .onClick(async () => {
-                this.settings.reducedAtStart = !this.settings.reducedAtStart
-                await this.saveSettings();
+                plugin.settings.reducedAtStart = !plugin.settings.reducedAtStart
+                await plugin.saveSettings();
             })
     })
 
     menu.addSeparator();
 
     const currentVaultPath = app.vault.adapter.basePath;
+    console.log("currentVaultPath", currentVaultPath)
 
     vaultPaths.forEach((vaultPath) => {
         const vaultName = getName(vaultPath);
