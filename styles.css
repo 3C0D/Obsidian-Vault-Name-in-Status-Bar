@@ -1,11 +1,1 @@
-.status-bar-vault-name {
-  font-weight: bold;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-/* .status-bar-vault-name svg {
-  width: 30px;
-  height: 30px;
-} */
+.status-bar-vault-name{font-weight:700;display:flex;align-items:center;gap:4px}
