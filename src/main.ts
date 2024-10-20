@@ -4,13 +4,9 @@ import { vaultsMenu } from "./menu";
 import { chevrons, DEFAULT_SETTINGS } from "./variables";
 import { SBVNSettings } from "./interfaces";
 
-
-
-
 export default class StatusBarVaultName extends Plugin {
 	settings: SBVNSettings
 	title: HTMLDivElement
-
 
 	async onload() {
 		await this.loadSettings();

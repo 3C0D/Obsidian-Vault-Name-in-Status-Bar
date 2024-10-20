@@ -20,7 +20,6 @@ export function vaultsMenu(plugin: StatusBarVaultName,app: App, evt: MouseEvent)
     menu.addSeparator();
 
     const currentVaultPath = app.vault.adapter.basePath;
-    console.log("currentVaultPath", currentVaultPath)
 
     vaultPaths.forEach((vaultPath) => {
         const vaultName = getName(vaultPath);
