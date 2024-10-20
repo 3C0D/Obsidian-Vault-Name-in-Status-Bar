@@ -1,1 +1,1 @@
-fix missing files in release
+deleted a console.log
