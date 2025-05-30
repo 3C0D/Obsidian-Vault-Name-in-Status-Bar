@@ -5,7 +5,7 @@ import StatusBarVaultName from "./main";
 
 addIcon("buttonSVG", vaults_picker);
 
-export function vaultsMenu(plugin: StatusBarVaultName,app: App, evt: MouseEvent) {
+export function vaultsMenu(plugin: StatusBarVaultName, app: App, evt: MouseEvent) {
     const menu = new Menu()
 
     menu.addItem((item) => {
@@ -19,7 +19,7 @@ export function vaultsMenu(plugin: StatusBarVaultName,app: App, evt: MouseEvent)
 
     menu.addSeparator();
 
-    const currentVaultPath = app.vault.adapter.basePath;
+    const currentVaultPath = (app.vault.adapter as any).basePath;
 
     vaultPaths.forEach((vaultPath) => {
         const vaultName = getName(vaultPath);
@@ -44,7 +44,7 @@ export function vaultsMenu(plugin: StatusBarVaultName,app: App, evt: MouseEvent)
             .setTitle('Vaults')
             .setIcon("buttonSVG")
             .onClick(async () => {
-                app.openVaultChooser();
+                (app as any).openVaultChooser();
             })
 
     })
