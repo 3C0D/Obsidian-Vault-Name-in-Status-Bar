@@ -1,5 +1,5 @@
 import { PluginSettingTab, App, Setting } from "obsidian";
-import StatusBarVaultName from "./main";
+import StatusBarVaultName from "./main.ts";
 
 export class Settings extends PluginSettingTab {
     plugin: StatusBarVaultName;

@@ -29,4 +29,5 @@ main.css
 .vscode/*
 !.vscode/settings.json
 
-
+# Keep injection info for traceability
+# .injection-info.json should be committed to track injection version

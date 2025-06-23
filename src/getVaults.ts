@@ -2,7 +2,7 @@ import { readFileSync } from "fs";
 import { Platform } from "obsidian";
 import * as path from "path";
 import * as os from "os";
-import { ObsidianJsonConfig } from "./interfaces";
+import type { ObsidianJsonConfig } from "./interfaces.ts";
 
 function getVaultsConfig(): string | null {
     const userDir: string = os.homedir();
@@ -13,8 +13,8 @@ function getVaultsConfig(): string | null {
     } else if (Platform.isLinux) {
         return path.join(userDir, '.config', 'obsidian', 'obsidian.json');
     } else {
-        console.log("should open explorer?")
-        return null
+        console.log("should open explorer?");
+        return null;
     }
 }
 
@@ -54,6 +54,6 @@ function getAllVaultPaths(): string[] | null {
     }
 }
 
-export const vaultPaths = getAllVaultPaths()??[]
+export const vaultPaths = getAllVaultPaths()??[];
 
 

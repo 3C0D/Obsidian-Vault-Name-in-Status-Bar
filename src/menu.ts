@@ -1,21 +1,21 @@
 import { addIcon, App, Menu } from "obsidian";
-import { vaults_picker } from "./variables";
-import { vaultPaths } from "./getVaults";
-import StatusBarVaultName from "./main";
+import { vaults_picker } from "./variables.ts";
+import { vaultPaths } from "./getVaults.ts";
+import StatusBarVaultName from "./main.ts";
 
 addIcon("buttonSVG", vaults_picker);
 
-export function vaultsMenu(plugin: StatusBarVaultName, app: App, evt: MouseEvent) {
-    const menu = new Menu()
+export function vaultsMenu(plugin: StatusBarVaultName, app: App, evt: MouseEvent): void {
+    const menu = new Menu();
 
     menu.addItem((item) => {
         item
             .setTitle(`${plugin.settings.reducedAtStart ? "Maximize" : "Minimize"} Vault Name`)
             .onClick(async () => {
-                plugin.settings.reducedAtStart = !plugin.settings.reducedAtStart
+                plugin.settings.reducedAtStart = !plugin.settings.reducedAtStart;
                 await plugin.saveSettings();
-            })
-    })
+            });
+    });
 
     menu.addSeparator();
 
@@ -33,9 +33,9 @@ export function vaultsMenu(plugin: StatusBarVaultName, app: App, evt: MouseEvent
                         window.open(`obsidian://open?vault=${encodeURIComponent(vaultName)}`
                         );
                     }
-                })
-        })
-    })
+                });
+        });
+    });
 
     menu.addSeparator();
 
@@ -45,12 +45,12 @@ export function vaultsMenu(plugin: StatusBarVaultName, app: App, evt: MouseEvent
             .setIcon("buttonSVG")
             .onClick(async () => {
                 (app as any).openVaultChooser();
-            })
+            });
 
-    })
+    });
     menu.showAtMouseEvent(evt);
 }
 
-function getName(path: string) {
+function getName(path: string): string {
     return path.split(/[/\\]/).pop() || "";
 }

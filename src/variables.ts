@@ -1,4 +1,4 @@
-import { SBVNSettings } from "./interfaces";
+import type { SBVNSettings } from "./interfaces.ts";
 
 
 export const DEFAULT_SETTINGS: SBVNSettings = {
