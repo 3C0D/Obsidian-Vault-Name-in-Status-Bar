@@ -4,7 +4,8 @@
 
 - **Dynamic Vault Display:** Instantly view your current vault's name in the Obsidian status bar.
 - **Customizable Appearance:** Personalize the display to match your workspace, ensuring a seamless integration.
-- **Vaults Menu:** One-click access to the vaults menu for easy navigation. 
+- **Vaults Menu:** One-click access to the vaults menu for easy navigation.
+- **Editor Line Width Control:** Adjust the editor line width directly from the status bar with an interactive slider and visual guides.
 
 ## Benefits:
 
@@ -17,20 +18,29 @@
 - Displays your current vault name in the status bar
 - Click to open a menu for quick vault switching
 - Customizable appearance
-- Vaut name length customizable
+- Vault name length customizable
+- Editor line width control via a horizontal arrow icon in the status bar
+- Interactive slider popup to adjust line width as a percentage
+- Visual guides showing the width boundaries while adjusting
+- Tooltips on status bar elements
 
 ## Settings
 
-- **Color**: Choose the color of the vault name in the status bar
+- **Vault Name Color**: Choose the color of the vault name in the status bar
 - **Font Size**: Adjust the font size of the vault name (in em)
 - **Enable Maximum Length**: Option to truncate the vault name if it exceeds the maximum length
 - **Maximum Length**: Set the maximum number of characters to display in the vault name
+- **Enable Line Width Control**: Show/hide the line width control icon in the status bar
+- **Line Width Color**: Choose the color of the line width icon in the status bar
 
 ## Usage
 
 - The vault name appears in the status bar
 - Click on the vault name to open a menu with options to switch to other vaults or manage vaults
 - The current vault is indicated with a checkmark in the menu
+- Click on the horizontal arrow icon (`<->`) to open a slider controlling the editor line width
+- Drag the slider to adjust the width (30% to 100%); visual guides appear on each side of the editor during adjustment
+- When enabling the line width control, the slider automatically adapts to the current editor width
 
 ## Installation
 

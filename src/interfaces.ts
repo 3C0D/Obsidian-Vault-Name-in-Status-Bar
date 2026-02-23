@@ -4,6 +4,9 @@ export interface SBVNSettings {
 	maxTitleLength: number;
     enableMaxLength: boolean;
     reducedAtStart: boolean;
+    enableLineWidth: boolean;
+    lineWidthPercent: number;
+    lineWidthColor: string;
 }
 
 

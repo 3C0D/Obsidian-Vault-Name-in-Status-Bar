@@ -14,7 +14,7 @@ export class Settings extends PluginSettingTab {
         containerEl.empty();
 
         new Setting(containerEl)
-            .setName("Color")
+            .setName("Vault Name Color")
             .setDesc("Choose the color of the vault name in the status bar")
             .addColorPicker(color => color
                 .setValue(this.plugin.settings.color)
@@ -60,6 +60,30 @@ export class Settings extends PluginSettingTab {
                     await this.plugin.saveSettings();
                 })
             );
+
+        new Setting(containerEl)
+            .setName("Enable Line Width Control")
+            .setDesc("Show a control in the status bar to adjust the editor line width")
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.enableLineWidth)
+                .onChange(async (value) => {
+                    if (value) {
+                        this.plugin.detectCurrentLineWidth();
+                    }
+                    this.plugin.settings.enableLineWidth = value;
+                    await this.plugin.saveSettings();
+                })
+            );
+
+        new Setting(containerEl)
+            .setName("Line Width Color")
+            .setDesc("Choose the color of the line width icon in the status bar")
+            .addColorPicker(color => color
+                .setValue(this.plugin.settings.lineWidthColor)
+                .onChange(async (value) => {
+                    this.plugin.settings.lineWidthColor = value;
+                    await this.plugin.saveSettings();
+                })
+            );
     }
 }
-
