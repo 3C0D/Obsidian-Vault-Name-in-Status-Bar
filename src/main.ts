@@ -14,6 +14,7 @@ export default class StatusBarVaultName extends Plugin {
 	rightGuide: HTMLDivElement | null = null;
 	guideTimeout: number = 0;
 	boundClosePopup: (e: MouseEvent) => void;
+	resizeObserver: ResizeObserver | null = null;
 
 	async onload(): Promise<void> {
 		await this.loadSettings();
@@ -22,7 +23,7 @@ export default class StatusBarVaultName extends Plugin {
 		const statusBar = document.querySelector('.status-bar');
 
 		this.title = document.createElement('div');
-		this.title.innerHTML = this.settings.reducedAtStart ? `${chevrons}` : `${chevrons} ${vaultName}`;
+		this.title.innerHTML = this.settings.reducedAtStart ? `${chevrons}` : `${chevrons} ${this.getTruncatedVaultName(vaultName)}`;
 		this.title.classList.add("status-bar-vault-name");
 		this.updateTitleTooltip();
 
@@ -41,6 +42,10 @@ export default class StatusBarVaultName extends Plugin {
 		this.lineWidthStyleEl = document.createElement('style');
 		document.head.appendChild(this.lineWidthStyleEl);
 		this.applyLineWidth();
+
+		this.registerEvent(
+			this.app.workspace.on('layout-change', () => this.updateEditorWidths())
+		);
 
 		this.title.addEventListener('click', (e) => vaultsMenu(this, this.app, e));
 
@@ -65,6 +70,7 @@ export default class StatusBarVaultName extends Plugin {
 		this.hideSliderPopup();
 		this.hideWidthGuides();
 		document.removeEventListener('click', this.boundClosePopup);
+		if (this.guideTimeout) window.clearTimeout(this.guideTimeout);
 	}
 
 	async loadSettings(): Promise<void> {
@@ -121,18 +127,59 @@ export default class StatusBarVaultName extends Plugin {
 
 	applyLineWidth(): void {
 		if (this.settings.enableLineWidth) {
-			const p = this.settings.lineWidthPercent;
+			// CSS: reset Obsidian constraints + centering only (no width here, handled by JS)
 			this.lineWidthStyleEl.textContent =
-            `body { --file-line-width: ${p}%; }` +
-            // Live preview (readable line width disabled)
-            `.cm-contentContainer { max-width: none !important; }` +
-            `.cm-sizer { max-width: ${p}% !important; margin-left: auto !important; margin-right: auto !important; }` +
-            // Reading mode
-            `.markdown-preview-view .markdown-preview-sizer { width: ${p}% !important; max-width: 100% !important; margin-left: auto !important; margin-right: auto !important; box-sizing: border-box !important; }` +
-            // Mermaid SVGs in reading mode
-            `.markdown-preview-sizer .mermaid svg { max-width: 100% !important; height: auto !important; }`;
+				`.cm-contentContainer { max-width: unset !important; }` +
+				`.cm-content { max-width: unset !important; }` +
+				`.cm-sizer { margin-left: auto !important; margin-right: auto !important; }` +
+				`.markdown-preview-view .markdown-preview-sizer { margin-left: auto !important; margin-right: auto !important; max-width: 100% !important; box-sizing: border-box !important; }` +
+				`.markdown-preview-sizer .mermaid svg { max-width: 100% !important; height: auto !important; }`;
+			this.setupResizeObserver();
+			this.updateEditorWidths();
 		} else {
 			this.lineWidthStyleEl.textContent = '';
+			this.cleanupResizeObserver();
+			document.querySelectorAll('.cm-sizer, .markdown-preview-sizer').forEach(el => {
+				(el as HTMLElement).style.removeProperty('max-width');
+				(el as HTMLElement).style.removeProperty('width');
+			});
+		}
+	}
+
+	setupResizeObserver(): void {
+		this.cleanupResizeObserver();
+		this.resizeObserver = new ResizeObserver(() => this.updateEditorWidths());
+		const workspaceEl = document.querySelector('.workspace');
+		if (workspaceEl) this.resizeObserver.observe(workspaceEl);
+	}
+
+	updateEditorWidths(): void {
+		const p = this.settings.lineWidthPercent / 100;
+
+		// Live preview / source mode — base width from .cm-editor (ignores readable line width)
+		document.querySelectorAll('.cm-editor').forEach(editorEl => {
+			const sizerEl = editorEl.querySelector('.cm-sizer') as HTMLElement;
+			if (!sizerEl) return;
+			const width = (editorEl as HTMLElement).clientWidth;
+			if (width <= 0) return;
+			sizerEl.style.maxWidth = `${Math.round(width * p)}px`;
+		});
+
+		// Reading mode
+		document.querySelectorAll('.markdown-preview-view').forEach(previewEl => {
+			const sizerEl = previewEl.querySelector('.markdown-preview-sizer') as HTMLElement;
+			if (!sizerEl) return;
+			const width = (previewEl as HTMLElement).clientWidth;
+			if (width <= 0) return;
+			sizerEl.style.maxWidth = `${Math.round(width * p)}px`;
+			sizerEl.style.width = `${Math.round(width * p)}px`;
+		});
+	}
+
+	cleanupResizeObserver(): void {
+		if (this.resizeObserver) {
+			this.resizeObserver.disconnect();
+			this.resizeObserver = null;
 		}
 	}
 
@@ -219,14 +266,37 @@ export default class StatusBarVaultName extends Plugin {
 		const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
 		if (!activeView) return;
 
-		// Try all possible selectors
+		// Reading mode — calculate from container, same logic as updateEditorWidths
+		const readingContainer = (
+			activeView.containerEl.querySelector('.markdown-reading-view') ||
+			document.querySelector('.workspace-leaf.mod-active .markdown-reading-view')
+		) as HTMLElement | null;
+
+		if (readingContainer && readingContainer.offsetParent !== null) {
+			const sizerEl = readingContainer.querySelector('.markdown-preview-sizer') as HTMLElement;
+			if (!sizerEl) return;
+			const containerRect = readingContainer.getBoundingClientRect();
+			const contentWidth = Math.round(containerRect.width * this.settings.lineWidthPercent / 100);
+			const offsetX = (containerRect.width - contentWidth) / 2;
+
+			this.leftGuide = document.createElement('div');
+			this.leftGuide.classList.add('line-width-guide');
+			this.leftGuide.style.left = `${containerRect.left + offsetX}px`;
+
+			this.rightGuide = document.createElement('div');
+			this.rightGuide.classList.add('line-width-guide');
+			this.rightGuide.style.left = `${containerRect.left + offsetX + contentWidth}px`;
+
+			document.body.appendChild(this.leftGuide);
+			document.body.appendChild(this.rightGuide);
+			return;
+		}
+
+		// Live preview / source mode
 		const contentEl = (
 			activeView.containerEl.querySelector('.cm-sizer') ||
-			activeView.containerEl.querySelector('.markdown-preview-sizer') ||
-			document.querySelector('.workspace-leaf.mod-active .cm-sizer') ||
-			document.querySelector('.workspace-leaf.mod-active .markdown-preview-sizer')
+			document.querySelector('.workspace-leaf.mod-active .cm-sizer')
 		) as HTMLElement;
-
 		if (!contentEl) return;
 
 		const rect = contentEl.getBoundingClientRect();
