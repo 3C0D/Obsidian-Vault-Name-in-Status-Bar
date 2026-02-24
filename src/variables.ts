@@ -8,7 +8,7 @@ export const DEFAULT_SETTINGS: SBVNSettings = {
 	enableMaxLength: true,
 	reducedAtStart: false,
 	enableLineWidth: true,
-	lineWidthPercent: 100,
+	lineWidthPercent: 80,
 	lineWidthColor: "#d84c42",
 };
 

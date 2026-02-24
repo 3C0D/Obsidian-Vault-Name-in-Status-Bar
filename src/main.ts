@@ -71,6 +71,7 @@ export default class StatusBarVaultName extends Plugin {
 		this.hideWidthGuides();
 		document.removeEventListener('click', this.boundClosePopup);
 		if (this.guideTimeout) window.clearTimeout(this.guideTimeout);
+		this.cleanupResizeObserver();
 	}
 
 	async loadSettings(): Promise<void> {
@@ -181,29 +182,6 @@ export default class StatusBarVaultName extends Plugin {
 			this.resizeObserver.disconnect();
 			this.resizeObserver = null;
 		}
-	}
-
-	detectCurrentLineWidth(): void {
-		const computed = getComputedStyle(document.body).getPropertyValue('--file-line-width').trim();
-		const editorEl = document.querySelector('.workspace-leaf.mod-active .cm-editor');
-		if (!computed || !editorEl) return;
-
-		const containerWidth = editorEl.clientWidth;
-		if (containerWidth <= 0) return;
-
-		let pxValue: number;
-		if (computed.endsWith('px')) {
-			pxValue = parseFloat(computed);
-		} else if (computed.endsWith('rem')) {
-			const rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize);
-			pxValue = parseFloat(computed) * rootFontSize;
-		} else {
-			return;
-		}
-
-		if (isNaN(pxValue)) return;
-		const percent = Math.round((pxValue / containerWidth) * 100);
-		this.settings.lineWidthPercent = Math.min(100, Math.max(45, percent));
 	}
 
 	toggleSliderPopup(): void {
