@@ -6,7 +6,7 @@ export interface SBVNSettings {
     reducedAtStart: boolean;
     enableVaultName: boolean;
     enableLineWidth: boolean;
-    lineWidthPercent: number;
+    lineWidthPx: number;
     lineWidthColor: string;
 }
 

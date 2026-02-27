@@ -24,7 +24,7 @@ The line width control allows you to adjust the editor width directly from the s
 - Customizable appearance
 - Vault name length customizable
 - Editor line width control via a horizontal arrow icon in the status bar
-- Interactive slider popup to adjust line width as a percentage
+- Interactive slider popup to adjust line width in pixels
 - Visual guides showing the width boundaries while adjusting
 - Tooltips on status bar elements
 
@@ -43,7 +43,7 @@ The line width control allows you to adjust the editor width directly from the s
 - The vault name appears in the status bar
 - Click on the vault name to open a menu with vault name toggle option and vaults context menu options
 - The current vault is indicated with a checkmark in the menu
-- Click on the horizontal arrow icon (`<->`) to open a slider controlling the editor line width (45% to 100%). Visual guides appear on each side of the editor during adjustment.
+- Click on the horizontal arrow icon (`<->`) to open a slider controlling the editor line width (300px to 1600px). Visual guides appear on each side of the editor during adjustment.
 
 ## Installation
 

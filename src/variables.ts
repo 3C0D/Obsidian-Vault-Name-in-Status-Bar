@@ -9,7 +9,7 @@ export const DEFAULT_SETTINGS: SBVNSettings = {
 	reducedAtStart: false,
 	enableLineWidth: true,
 	enableVaultName: true,
-	lineWidthPercent: 80,
+	lineWidthPx: 800,
 	lineWidthColor: "#d84c42",
 };
 

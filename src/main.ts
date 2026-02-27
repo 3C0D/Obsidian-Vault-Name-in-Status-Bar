@@ -129,7 +129,7 @@ export default class StatusBarVaultName extends Plugin {
 	}
 
 	updateLineWidthTooltip(): void {
-		this.lineWidthEl.setAttribute('aria-label', `Editor width: ${this.settings.lineWidthPercent}%`);
+		this.lineWidthEl.setAttribute('aria-label', `Editor width: ${this.settings.lineWidthPx}px`);
 	}
 
 	applyLineWidth(): void {
@@ -162,15 +162,15 @@ export default class StatusBarVaultName extends Plugin {
 	}
 
 	updateEditorWidths(): void {
-		const p = this.settings.lineWidthPercent / 100;
+		const px = this.settings.lineWidthPx;
 
 		// Live preview / source mode — base width from .cm-editor (ignores readable line width)
 		document.querySelectorAll('.cm-editor').forEach(editorEl => {
 			const sizerEl = editorEl.querySelector('.cm-sizer') as HTMLElement;
 			if (!sizerEl) return;
 			const width = (editorEl as HTMLElement).clientWidth;
-			if (width <= 0) return;
-			sizerEl.style.maxWidth = `${Math.round(width * p)}px`;
+			if (width === 0) return;
+			sizerEl.style.maxWidth = `${px}px`;
 		});
 
 		// Reading mode
@@ -179,8 +179,8 @@ export default class StatusBarVaultName extends Plugin {
 			if (!sizerEl) return;
 			const width = (previewEl as HTMLElement).clientWidth;
 			if (width <= 0) return;
-			sizerEl.style.maxWidth = `${Math.round(width * p)}px`;
-			sizerEl.style.width = `${Math.round(width * p)}px`;
+			sizerEl.style.maxWidth = `${px}px`;
+			sizerEl.style.width = `${px}px`;
 		});
 	}
 
@@ -189,30 +189,6 @@ export default class StatusBarVaultName extends Plugin {
 			this.resizeObserver.disconnect();
 			this.resizeObserver = null;
 		}
-	}
-
-	detectCurrentLineWidth(): void {
-		const computed = getComputedStyle(document.body).getPropertyValue('--file-line-width').trim();
-		const editorEl = document.querySelector('.workspace-leaf.mod-active .cm-editor');
-		if (!computed || !editorEl) return;
-
-		const containerWidth = editorEl.clientWidth;
-		if (containerWidth <= 0) return;
-
-		let pxValue: number;
-		if (computed.endsWith('px')) {
-			pxValue = parseFloat(computed);
-		} else if (computed.endsWith('rem')) {
-			const rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize);
-			pxValue = parseFloat(computed) * rootFontSize;
-		} else {
-			return;
-		}
-
-		if (isNaN(pxValue)) return;
-		const percent = Math.round((pxValue / containerWidth) * 100);
-		// slider between 45 and 100
-		this.settings.lineWidthPercent = Math.min(100, Math.max(45, percent));
 	}
 
 	toggleSliderPopup(): void {
@@ -229,19 +205,19 @@ export default class StatusBarVaultName extends Plugin {
 
 		const label = document.createElement('div');
 		label.classList.add('line-width-slider-label');
-		label.textContent = `${this.settings.lineWidthPercent}%`;
+		label.textContent = `${this.settings.lineWidthPx}px`;
 
 		const slider = document.createElement('input');
 		slider.type = 'range';
-		slider.min = '45';
-		slider.max = '100';
-		slider.value = `${this.settings.lineWidthPercent}`;
+		slider.min = '300';
+		slider.max = '1600';
+		slider.value = `${this.settings.lineWidthPx}`;
 		slider.classList.add('line-width-slider');
 
 		slider.addEventListener('input', async () => {
 			const value = parseInt(slider.value);
-			this.settings.lineWidthPercent = value;
-			label.textContent = `${value}%`;
+			this.settings.lineWidthPx = value;
+			label.textContent = `${value}px`;
 			this.applyLineWidth();
 			this.updateLineWidthTooltip();
 			await this.saveData(this.settings);
@@ -285,7 +261,7 @@ export default class StatusBarVaultName extends Plugin {
 			const sizerEl = readingContainer.querySelector('.markdown-preview-sizer') as HTMLElement;
 			if (!sizerEl) return;
 			const containerRect = readingContainer.getBoundingClientRect();
-			const contentWidth = Math.round(containerRect.width * this.settings.lineWidthPercent / 100);
+			const contentWidth = this.settings.lineWidthPx;
 			const offsetX = (containerRect.width - contentWidth) / 2;
 
 			this.leftGuide = document.createElement('div');

@@ -78,9 +78,6 @@ export class Settings extends PluginSettingTab {
             .addToggle(toggle => toggle
                 .setValue(this.plugin.settings.enableLineWidth)
                 .onChange(async (value) => {
-                    if (value) {
-                        this.plugin.detectCurrentLineWidth();
-                    }
                     this.plugin.settings.enableLineWidth = value;
                     await this.plugin.saveSettings();
                 })
