@@ -26,6 +26,7 @@ export default class StatusBarVaultName extends Plugin {
 		this.vaultNameEl.innerHTML = this.settings.reducedAtStart ? `${chevrons}` : `${chevrons} ${this.getTruncatedVaultName(vaultName)}`;
 		this.vaultNameEl.classList.add("status-bar-vault-name");
 		this.updateVaultNameElTooltip();
+		this.updateVaultNameVisibility();
 
 		this.lineWidthEl = document.createElement('div');
 		this.lineWidthEl.innerHTML = chevronsHorizontal;
@@ -86,6 +87,7 @@ export default class StatusBarVaultName extends Plugin {
 		await this.saveData(this.settings);
 		this.updateVaultNameElStyle();
 		this.updateVaultName();
+		this.updateVaultNameVisibility();
 		this.updateLineWidthElStyle();
 		this.updateLineWidthVisibility();
 		this.updateLineWidthTooltip();
@@ -105,6 +107,10 @@ export default class StatusBarVaultName extends Plugin {
 
 	updateVaultNameElTooltip(): void {
 		this.vaultNameEl.setAttribute('aria-label', "vault name");
+	}
+
+	updateVaultNameVisibility(): void {
+		this.vaultNameEl.style.display = this.settings.enableVaultName ? 'flex' : 'none';
 	}
 
 	getTruncatedVaultName(name: string): string {
@@ -147,6 +153,7 @@ export default class StatusBarVaultName extends Plugin {
 		}
 	}
 
+	// Recalculates editor widths whenever the workspace is resized (window resize, side panel toggle...)
 	setupResizeObserver(): void {
 		this.cleanupResizeObserver();
 		this.resizeObserver = new ResizeObserver(() => this.updateEditorWidths());
