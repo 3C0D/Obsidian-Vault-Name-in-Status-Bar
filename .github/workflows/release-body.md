@@ -1,1 +1,1 @@
-injection
+Line width control : adds a new icon in the status bar to adjust the editor line width via a slider (45–100%). Works in live preview, source mode, and reading mode. Visual guides appear while dragging to show the content boundaries.
