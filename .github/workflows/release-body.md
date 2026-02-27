@@ -1,1 +1,3 @@
-Line width control : adds a new icon in the status bar to adjust the editor line width via a slider (45–100%). Works in live preview, source mode, and reading mode. Visual guides appear while dragging to show the content boundaries.
+**Line width: switched from percentage to absolute pixels
+
+The line width setting now uses pixels instead of a percentage. Percentages were relative to the available space, which caused inconsistent results when toggling side panels or switching between editor modes. A pixel value is fixed regardless of the workspace layout.**
