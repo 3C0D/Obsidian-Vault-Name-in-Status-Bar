@@ -1,9 +1,10 @@
 export interface SBVNSettings {
 	color: string;
 	fontSize: number;
-	maxTitleLength: number;
+	maxVaultNameLength: number;
     enableMaxLength: boolean;
     reducedAtStart: boolean;
+    enableVaultName: boolean;
     enableLineWidth: boolean;
     lineWidthPercent: number;
     lineWidthColor: string;

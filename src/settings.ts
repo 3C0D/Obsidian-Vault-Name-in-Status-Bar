@@ -14,6 +14,17 @@ export class Settings extends PluginSettingTab {
         containerEl.empty();
 
         new Setting(containerEl)
+            .setName("Display vault name")
+            .setDesc("Show the vault Name in the status bar (vault list in submenu)")
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.enableVaultName)
+                .onChange(async (value) => {
+                    this.plugin.settings.enableVaultName = value;
+                    await this.plugin.saveSettings();
+                })
+            );
+
+        new Setting(containerEl)
             .setName("Vault Name Color")
             .setDesc("Choose the color of the vault name in the status bar")
             .addColorPicker(color => color
@@ -53,10 +64,10 @@ export class Settings extends PluginSettingTab {
             .setDesc("Maximum number of characters to display in the vault name")
             .addSlider(slider => slider
                 .setLimits(5, 30, 1)
-                .setValue(this.plugin.settings.maxTitleLength)
+                .setValue(this.plugin.settings.maxVaultNameLength)
                 .setDynamicTooltip()
                 .onChange(async (value) => {
-                    this.plugin.settings.maxTitleLength = value;
+                    this.plugin.settings.maxVaultNameLength = value;
                     await this.plugin.saveSettings();
                 })
             );

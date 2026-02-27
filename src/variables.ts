@@ -4,10 +4,11 @@ import type { SBVNSettings } from "./interfaces.ts";
 export const DEFAULT_SETTINGS: SBVNSettings = {
 	color: "#424cd8",
 	fontSize: 1.5,
-	maxTitleLength: 10,
+	maxVaultNameLength: 10,
 	enableMaxLength: true,
 	reducedAtStart: false,
 	enableLineWidth: true,
+	enableVaultName: true,
 	lineWidthPercent: 80,
 	lineWidthColor: "#d84c42",
 };

@@ -6,7 +6,7 @@ import type { SBVNSettings } from "./interfaces.ts";
 
 export default class StatusBarVaultName extends Plugin {
 	settings: SBVNSettings;
-	title: HTMLDivElement;
+	vaultNameEl: HTMLDivElement;
 	lineWidthEl: HTMLDivElement;
 	lineWidthStyleEl: HTMLStyleElement;
 	sliderPopup: HTMLDivElement | null = null;
@@ -22,10 +22,10 @@ export default class StatusBarVaultName extends Plugin {
 		const vaultName = this.app.vault.getName();
 		const statusBar = document.querySelector('.status-bar');
 
-		this.title = document.createElement('div');
-		this.title.innerHTML = this.settings.reducedAtStart ? `${chevrons}` : `${chevrons} ${this.getTruncatedVaultName(vaultName)}`;
-		this.title.classList.add("status-bar-vault-name");
-		this.updateTitleTooltip();
+		this.vaultNameEl = document.createElement('div');
+		this.vaultNameEl.innerHTML = this.settings.reducedAtStart ? `${chevrons}` : `${chevrons} ${this.getTruncatedVaultName(vaultName)}`;
+		this.vaultNameEl.classList.add("status-bar-vault-name");
+		this.updateVaultNameElTooltip();
 
 		this.lineWidthEl = document.createElement('div');
 		this.lineWidthEl.innerHTML = chevronsHorizontal;
@@ -33,9 +33,9 @@ export default class StatusBarVaultName extends Plugin {
 		this.updateLineWidthTooltip();
 
 		statusBar?.prepend(this.lineWidthEl);
-		statusBar?.prepend(this.title);
+		statusBar?.prepend(this.vaultNameEl);
 
-		this.updateTitleStyle();
+		this.updateVaultNameElStyle();
 		this.updateLineWidthElStyle();
 		this.updateLineWidthVisibility();
 
@@ -47,7 +47,7 @@ export default class StatusBarVaultName extends Plugin {
 			this.app.workspace.on('layout-change', () => this.updateEditorWidths())
 		);
 
-		this.title.addEventListener('click', (e) => vaultsMenu(this, this.app, e));
+		this.vaultNameEl.addEventListener('click', (e) => vaultsMenu(this, this.app, e));
 
 		this.lineWidthEl.addEventListener('click', (e) => {
 			e.stopPropagation();
@@ -64,7 +64,7 @@ export default class StatusBarVaultName extends Plugin {
 	}
 
 	onunload(): void {
-		this.title.detach();
+		this.vaultNameEl.detach();
 		this.lineWidthEl.detach();
 		this.lineWidthStyleEl.remove();
 		this.hideSliderPopup();
@@ -84,7 +84,7 @@ export default class StatusBarVaultName extends Plugin {
 
 	async saveSettings(): Promise<void> {
 		await this.saveData(this.settings);
-		this.updateTitleStyle();
+		this.updateVaultNameElStyle();
 		this.updateVaultName();
 		this.updateLineWidthElStyle();
 		this.updateLineWidthVisibility();
@@ -92,24 +92,24 @@ export default class StatusBarVaultName extends Plugin {
 		this.applyLineWidth();
 	}
 
-	updateTitleStyle(): void {
-		this.title.style.color = this.settings.color;
-		this.title.style.fontSize = `${this.settings.fontSize}em`;
+	updateVaultNameElStyle(): void {
+		this.vaultNameEl.style.color = this.settings.color;
+		this.vaultNameEl.style.fontSize = `${this.settings.fontSize}em`;
 	}
 
 	updateVaultName(): void {
 		const vaultName = this.app.vault.getName();
-		this.title.innerHTML = this.settings.reducedAtStart ? `${chevrons}` : `${chevrons} ${this.getTruncatedVaultName(vaultName)}`;
-		this.updateTitleTooltip();
+		this.vaultNameEl.innerHTML = this.settings.reducedAtStart ? `${chevrons}` : `${chevrons} ${this.getTruncatedVaultName(vaultName)}`;
+		this.updateVaultNameElTooltip();
 	}
 
-	updateTitleTooltip(): void {
-		this.title.setAttribute('aria-label', "vault name");
+	updateVaultNameElTooltip(): void {
+		this.vaultNameEl.setAttribute('aria-label', "vault name");
 	}
 
 	getTruncatedVaultName(name: string): string {
-		if (this.settings.enableMaxLength && name.length > this.settings.maxTitleLength) {
-			return name.slice(0, this.settings.maxTitleLength) + '...';
+		if (this.settings.enableMaxLength && name.length > this.settings.maxVaultNameLength) {
+			return name.slice(0, this.settings.maxVaultNameLength) + '...';
 		}
 		return name;
 	}
@@ -182,6 +182,30 @@ export default class StatusBarVaultName extends Plugin {
 			this.resizeObserver.disconnect();
 			this.resizeObserver = null;
 		}
+	}
+
+	detectCurrentLineWidth(): void {
+		const computed = getComputedStyle(document.body).getPropertyValue('--file-line-width').trim();
+		const editorEl = document.querySelector('.workspace-leaf.mod-active .cm-editor');
+		if (!computed || !editorEl) return;
+
+		const containerWidth = editorEl.clientWidth;
+		if (containerWidth <= 0) return;
+
+		let pxValue: number;
+		if (computed.endsWith('px')) {
+			pxValue = parseFloat(computed);
+		} else if (computed.endsWith('rem')) {
+			const rootFontSize = parseFloat(getComputedStyle(document.documentElement).fontSize);
+			pxValue = parseFloat(computed) * rootFontSize;
+		} else {
+			return;
+		}
+
+		if (isNaN(pxValue)) return;
+		const percent = Math.round((pxValue / containerWidth) * 100);
+		// slider between 45 and 100
+		this.settings.lineWidthPercent = Math.min(100, Math.max(45, percent));
 	}
 
 	toggleSliderPopup(): void {
