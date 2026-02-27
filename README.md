@@ -11,7 +11,11 @@
 
 - **Enhanced Efficiency:** This plugin provides the advantage of keeping this information always visible in the status bar, and providing another quick access to the vaults menu.
 
+The vault name appears in the status bar with quick access to the vaults menu. The settings panel allows you to customize its appearance, including truncating the name to a maximum length:
 ![alt text](Assets/example.png)
+
+The line width control allows you to adjust the editor width directly from the status bar:
+![line width](Assets/line_width.png)
 
 ## Features
 
@@ -37,11 +41,9 @@
 ## Usage
 
 - The vault name appears in the status bar
-- Click on the vault name to open a menu with options to switch to other vaults or manage vaults
+- Click on the vault name to open a menu with vault name toggle option and vaults context menu options
 - The current vault is indicated with a checkmark in the menu
-- Click on the horizontal arrow icon (`<->`) to open a slider controlling the editor line width
-- Drag the slider to adjust the width (45% to 100%); visual guides appear on each side of the editor during adjustment
-- When enabling the line width control, the slider automatically adapts to the current editor width
+- Click on the horizontal arrow icon (`<->`) to open a slider controlling the editor line width (45% to 100%). Visual guides appear on each side of the editor during adjustment.
 
 ## Installation
 
