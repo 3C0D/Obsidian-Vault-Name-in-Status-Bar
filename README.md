@@ -26,6 +26,7 @@
 
 ## Settings
 
+- **Enable vault name**: Show/hide the vault name in the status bar
 - **Vault Name Color**: Choose the color of the vault name in the status bar
 - **Font Size**: Adjust the font size of the vault name (in em)
 - **Enable Maximum Length**: Option to truncate the vault name if it exceeds the maximum length
@@ -39,7 +40,7 @@
 - Click on the vault name to open a menu with options to switch to other vaults or manage vaults
 - The current vault is indicated with a checkmark in the menu
 - Click on the horizontal arrow icon (`<->`) to open a slider controlling the editor line width
-- Drag the slider to adjust the width (30% to 100%); visual guides appear on each side of the editor during adjustment
+- Drag the slider to adjust the width (45% to 100%); visual guides appear on each side of the editor during adjustment
 - When enabling the line width control, the slider automatically adapts to the current editor width
 
 ## Installation

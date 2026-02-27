@@ -14,7 +14,7 @@ export class Settings extends PluginSettingTab {
         containerEl.empty();
 
         new Setting(containerEl)
-            .setName("Display vault name")
+            .setName("Enable vault name")
             .setDesc("Show the vault Name in the status bar (vault list in submenu)")
             .addToggle(toggle => toggle
                 .setValue(this.plugin.settings.enableVaultName)
