@@ -1,6 +1,6 @@
 {
 	"name": "vault-name-status-bar",
-	"version": "3.0.0",
+	"version": "3.0.1",
 	"description": "Vault name in status bar. can be reduced to ::",
 	"main": "main.js",
 	"scripts": {
