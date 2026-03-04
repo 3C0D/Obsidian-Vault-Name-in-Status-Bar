@@ -1,4 +1,4 @@
-import { MarkdownView, Plugin } from "obsidian";
+import { Plugin } from "obsidian";
 import { Settings } from "./settings.ts";
 import { vaultsMenu } from "./menu.ts";
 import { chevronsVertical, chevronsHorizontal, DEFAULT_SETTINGS } from "./variables.ts";
@@ -173,24 +173,22 @@ export default class StatusBarVaultName extends Plugin {
 
 	updateEditorWidths(): void {
 		const px = this.settings.lineWidthPx;
+		document.querySelectorAll('.workspace-leaf').forEach(leaf => {
+			const editorEl = leaf.querySelector('.cm-editor');
+			if (editorEl) {
+				const sizerEl = editorEl.querySelector('.cm-sizer') as HTMLElement;
+				if (sizerEl && (editorEl as HTMLElement).clientWidth > 0)
+					sizerEl.style.maxWidth = `${px}px`;
+			}
 
-		// Live preview / source mode — base width from .cm-editor (ignores readable line width)
-		document.querySelectorAll('.cm-editor').forEach(editorEl => {
-			const sizerEl = editorEl.querySelector('.cm-sizer') as HTMLElement;
-			if (!sizerEl) return;
-			const width = (editorEl as HTMLElement).clientWidth;
-			if (width <= 0) return;
-			sizerEl.style.maxWidth = `${px}px`;
-		});
-
-		// Reading mode
-		document.querySelectorAll('.markdown-preview-view').forEach(previewEl => {
-			const sizerEl = previewEl.querySelector('.markdown-preview-sizer') as HTMLElement;
-			if (!sizerEl) return;
-			const width = (previewEl as HTMLElement).clientWidth;
-			if (width <= 0) return;
-			sizerEl.style.maxWidth = `${px}px`;
-			sizerEl.style.width = `${px}px`;
+			const previewEl = leaf.querySelector('.markdown-preview-view');
+			if (previewEl) {
+				const sizerEl = previewEl.querySelector('.markdown-preview-sizer') as HTMLElement;
+				if (sizerEl && (previewEl as HTMLElement).clientWidth > 0) {
+					sizerEl.style.maxWidth = `${px}px`;
+					sizerEl.style.width = `${px}px`;
+				}
+			}
 		});
 	}
 
@@ -258,21 +256,17 @@ export default class StatusBarVaultName extends Plugin {
 	showWidthGuides(): void {
 		this.hideWidthGuides();
 
-		const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-		if (!activeView) return;
+		const activeLeaf = document.querySelector('.workspace-leaf.mod-active');
+		if (!activeLeaf) return;
 
-		// Reading mode — calculate from container, same logic as updateEditorWidths
-		const readingContainer = (
-			activeView.containerEl.querySelector('.markdown-reading-view') ||
-			document.querySelector('.workspace-leaf.mod-active .markdown-reading-view')
-		) as HTMLElement | null;
-
-		if (readingContainer && readingContainer.offsetParent !== null) {
+		// Reading mode
+		const readingContainer = activeLeaf.querySelector('.markdown-reading-view') as HTMLElement | null;
+		if (readingContainer) {
 			const sizerEl = readingContainer.querySelector('.markdown-preview-sizer') as HTMLElement;
 			if (!sizerEl) return;
 			const containerRect = readingContainer.getBoundingClientRect();
 			const contentWidth = this.settings.lineWidthPx;
-			const offsetX = (containerRect.width - contentWidth) / 2;
+			const offsetX = Math.max(0, (containerRect.width - contentWidth) / 2);
 
 			this.leftGuide = document.createElement('div');
 			this.leftGuide.classList.add('line-width-guide');
@@ -288,14 +282,10 @@ export default class StatusBarVaultName extends Plugin {
 		}
 
 		// Live preview / source mode
-		const contentEl = (
-			activeView.containerEl.querySelector('.cm-sizer') ||
-			document.querySelector('.workspace-leaf.mod-active .cm-sizer')
-		) as HTMLElement;
+		const contentEl = activeLeaf.querySelector('.cm-sizer') as HTMLElement | null;
 		if (!contentEl) return;
 
 		const rect = contentEl.getBoundingClientRect();
-		if (rect.width <= 0) return;
 
 		this.leftGuide = document.createElement('div');
 		this.leftGuide.classList.add('line-width-guide');
