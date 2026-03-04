@@ -232,6 +232,10 @@ export default class StatusBarVaultName extends Plugin {
 			this.updateLineWidthTooltip();
 			await this.saveData(this.settings);
 
+			// if we lost focus from the editor 
+			const recentLeaf = this.app.workspace.getMostRecentLeaf();
+			if (recentLeaf) this.app.workspace.setActiveLeaf(recentLeaf, { focus: true });
+
 			requestAnimationFrame(() => this.showWidthGuides());
 			if (this.guideTimeout) window.clearTimeout(this.guideTimeout);
 			this.guideTimeout = window.setTimeout(() => this.fadeOutWidthGuides(), 2000);
@@ -263,7 +267,9 @@ export default class StatusBarVaultName extends Plugin {
 
 		// Reading mode
 		const readingContainer = activeLeaf.querySelector('.markdown-reading-view') as HTMLElement | null;
-		if (readingContainer) {
+	
+		// Ensure the container is visible to not enter this condition if not in reading mode and cause a bug
+		if (readingContainer && readingContainer.offsetParent !== null) {
 			const sizerEl = readingContainer.querySelector('.markdown-preview-sizer') as HTMLElement;
 			if (!sizerEl) return;
 			const containerRect = readingContainer.getBoundingClientRect();
