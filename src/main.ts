@@ -173,22 +173,24 @@ export default class StatusBarVaultName extends Plugin {
 
 	updateEditorWidths(): void {
 		const px = this.settings.lineWidthPx;
-		document.querySelectorAll('.workspace-leaf').forEach(leaf => {
-			const editorEl = leaf.querySelector('.cm-editor');
-			if (editorEl) {
-				const sizerEl = editorEl.querySelector('.cm-sizer') as HTMLElement;
-				if (sizerEl && (editorEl as HTMLElement).clientWidth > 0)
-					sizerEl.style.maxWidth = `${px}px`;
-			}
 
-			const previewEl = leaf.querySelector('.markdown-preview-view');
-			if (previewEl) {
-				const sizerEl = previewEl.querySelector('.markdown-preview-sizer') as HTMLElement;
-				if (sizerEl && (previewEl as HTMLElement).clientWidth > 0) {
-					sizerEl.style.maxWidth = `${px}px`;
-					sizerEl.style.width = `${px}px`;
-				}
-			}
+		// Live preview / source mode — base width from .cm-editor (ignores readable line width)
+		document.querySelectorAll('.cm-editor').forEach(editorEl => {
+			const sizerEl = editorEl.querySelector('.cm-sizer') as HTMLElement;
+			if (!sizerEl) return;
+			const width = (editorEl as HTMLElement).clientWidth;
+			if (width <= 0) return;
+			sizerEl.style.maxWidth = `${px}px`;
+		});
+
+		// Reading mode
+		document.querySelectorAll('.markdown-preview-view').forEach(previewEl => {
+			const sizerEl = previewEl.querySelector('.markdown-preview-sizer') as HTMLElement;
+			if (!sizerEl) return;
+			const width = (previewEl as HTMLElement).clientWidth;
+			if (width <= 0) return;
+			sizerEl.style.maxWidth = `${px}px`;
+			sizerEl.style.width = `${px}px`;
 		});
 	}
 
@@ -286,6 +288,7 @@ export default class StatusBarVaultName extends Plugin {
 		if (!contentEl) return;
 
 		const rect = contentEl.getBoundingClientRect();
+		if (rect.width <= 0) return;
 
 		this.leftGuide = document.createElement('div');
 		this.leftGuide.classList.add('line-width-guide');
