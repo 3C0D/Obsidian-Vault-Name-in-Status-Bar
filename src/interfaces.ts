@@ -8,6 +8,7 @@ export interface SBVNSettings {
     enableLineWidth: boolean;
     lineWidthPx: number;
     lineWidthColor: string;
+    localWidths: Record<string, number>; // { "path/to/file.md": 800 }
 }
 
 

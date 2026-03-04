@@ -1,7 +1,7 @@
 import { Plugin } from "obsidian";
 import { Settings } from "./settings.ts";
 import { vaultsMenu } from "./menu.ts";
-import { chevronsVertical, chevronsHorizontal, DEFAULT_SETTINGS } from "./variables.ts";
+import { chevronsVertical, chevronsHorizontal, lockOpen, lockClosed, DEFAULT_SETTINGS } from "./variables.ts";
 import type { SBVNSettings } from "./interfaces.ts";
 
 export default class StatusBarVaultName extends Plugin {
@@ -13,8 +13,14 @@ export default class StatusBarVaultName extends Plugin {
 	leftGuide: HTMLDivElement | null = null;
 	rightGuide: HTMLDivElement | null = null;
 	guideTimeout: number = 0;
+	debounceTimer: number = 0;
 	boundClosePopup: (e: MouseEvent) => void;
 	resizeObserver: ResizeObserver | null = null;
+
+	get isLocked(): boolean {
+		const path = this.getActiveFilePath();
+		return path !== null && this.settings.localWidths[path] !== undefined;
+	}
 
 	async onload(): Promise<void> {
 		await this.loadSettings();
@@ -46,7 +52,11 @@ export default class StatusBarVaultName extends Plugin {
 		this.applyLineWidth();
 
 		this.registerEvent(
-			this.app.workspace.on('layout-change', () => this.updateEditorWidths())
+			this.app.workspace.on('layout-change', () => {
+				this.updateEditorWidths();
+				// Sync slider UI to active file's width when switching tabs
+				this.syncSliderToActiveFile();
+			})
 		);
 
 		this.vaultNameEl.addEventListener('click', (e) => vaultsMenu(this, this.app, e));
@@ -73,6 +83,7 @@ export default class StatusBarVaultName extends Plugin {
 		this.hideWidthGuides();
 		document.removeEventListener('click', this.boundClosePopup);
 		if (this.guideTimeout) window.clearTimeout(this.guideTimeout);
+		if (this.debounceTimer) window.clearTimeout(this.debounceTimer);
 		this.cleanupResizeObserver();
 	}
 
@@ -82,6 +93,8 @@ export default class StatusBarVaultName extends Plugin {
 			DEFAULT_SETTINGS,
 			await this.loadData()
 		);
+		// Ensure localWidths exists even on old installs
+		if (!this.settings.localWidths) this.settings.localWidths = {};
 	}
 
 	async saveSettings(): Promise<void> {
@@ -134,6 +147,43 @@ export default class StatusBarVaultName extends Plugin {
 		this.lineWidthEl.setAttribute('aria-label', `Editor width: ${this.settings.lineWidthPx}px`);
 	}
 
+	// Returns the active file path, or null if none
+	getActiveFilePath(): string | null {
+		const file = this.app.workspace.getActiveFile();
+		return file ? file.path : null;
+	}
+
+	// Returns the width to display for the currently active file
+	getActiveFileWidth(): number {
+		const path = this.getActiveFilePath();
+		if (path && this.settings.localWidths[path] !== undefined) {
+			return this.settings.localWidths[path];
+		}
+		return this.settings.lineWidthPx;
+	}
+
+	// Syncs the slider and label in the popup to the active file's width
+	syncSliderToActiveFile(): void {
+		if (!this.sliderPopup) return;
+		const width = this.getActiveFileWidth();
+		const slider = this.sliderPopup.querySelector('input[type="range"]') as HTMLInputElement | null;
+		const label = this.sliderPopup.querySelector('.line-width-slider-label') as HTMLElement | null;
+		if (slider) slider.value = `${width}`;
+		if (label) label.textContent = `${width}px`;
+
+		// Refresh lock icon to reflect active file state
+		const lockBtn = this.sliderPopup?.querySelector('.line-width-lock-btn') as HTMLElement | null;
+		if (lockBtn) {
+			if (this.isLocked) {
+				lockBtn.innerHTML = lockClosed;
+				lockBtn.style.color = 'var(--interactive-accent)';
+			} else {
+				lockBtn.innerHTML = lockOpen;
+				lockBtn.style.color = 'var(--text-muted)';
+			}
+		}
+	}
+
 	applyLineWidth(): void {
 		if (this.settings.enableLineWidth) {
 			// CSS: reset Obsidian constraints + centering only (no width here, handled by JS)
@@ -182,11 +232,21 @@ export default class StatusBarVaultName extends Plugin {
 		return Array.from(docs);
 	}
 
-	updateEditorWidths(): void {
-		const px = this.settings.lineWidthPx;
+	// Resolves the width to apply for a given leaf (local override or global)
+	getWidthForLeaf(leaf: any): number {
+		const file = leaf.view?.file;
+		if (file && this.settings.localWidths[file.path] !== undefined) {
+			return this.settings.localWidths[file.path];
+		}
+		return this.settings.lineWidthPx;
+	}
 
-		this.getAllDocuments().forEach(doc => {
-			doc.querySelectorAll('.cm-editor').forEach(editorEl => {
+	updateEditorWidths(): void {
+		this.app.workspace.iterateAllLeaves(leaf => {
+			const px = this.getWidthForLeaf(leaf);
+			const containerEl = leaf.containerEl as HTMLElement;
+
+			containerEl.querySelectorAll('.cm-editor').forEach(editorEl => {
 				const sizerEl = editorEl.querySelector('.cm-sizer') as HTMLElement;
 				if (!sizerEl) return;
 				const width = (editorEl as HTMLElement).clientWidth;
@@ -194,7 +254,7 @@ export default class StatusBarVaultName extends Plugin {
 				sizerEl.style.maxWidth = `${px}px`;
 			});
 
-			doc.querySelectorAll('.markdown-preview-view').forEach(previewEl => {
+			containerEl.querySelectorAll('.markdown-preview-view').forEach(previewEl => {
 				const sizerEl = previewEl.querySelector('.markdown-preview-sizer') as HTMLElement;
 				if (!sizerEl) return;
 				const width = (previewEl as HTMLElement).clientWidth;
@@ -224,26 +284,111 @@ export default class StatusBarVaultName extends Plugin {
 		this.sliderPopup = document.createElement('div');
 		this.sliderPopup.classList.add('line-width-slider-popup');
 
+		// --- Header row: label + lock button ---
+		const headerRow = document.createElement('div');
+		headerRow.style.display = 'flex';
+		headerRow.style.alignItems = 'center';
+		headerRow.style.justifyContent = 'space-between';
+		headerRow.style.width = '100%';
+
 		const label = document.createElement('div');
 		label.classList.add('line-width-slider-label');
-		label.textContent = `${this.settings.lineWidthPx}px`;
 
+		const lockBtn = document.createElement('button');
+		lockBtn.classList.add('line-width-lock-btn');
+		lockBtn.style.background = 'none';
+		lockBtn.style.border = 'none';
+		lockBtn.style.cursor = 'pointer';
+		lockBtn.style.padding = '2px';
+		lockBtn.style.display = 'flex';
+		lockBtn.style.alignItems = 'center';
+		lockBtn.style.color = 'var(--text-muted)';
+		lockBtn.style.transition = 'color 0.2s';
+
+		const updateLockState = (): void => {
+			const width = this.getActiveFileWidth();
+			label.textContent = `${width}px`;
+			if (this.isLocked) {
+				lockBtn.innerHTML = lockClosed;
+				lockBtn.style.color = 'var(--interactive-accent)';
+				lockBtn.setAttribute('aria-label', 'Local width (this file only)');
+			} else {
+				lockBtn.innerHTML = lockOpen;
+				lockBtn.style.color = 'var(--text-muted)';
+				lockBtn.setAttribute('aria-label', 'Global width (all files)');
+			}
+			slider.value = `${width}`;
+		};
+
+		lockBtn.addEventListener('click', (e) => {
+			e.stopPropagation();
+			const path = this.getActiveFilePath();
+			if (!path) return;
+			if (this.isLocked) {
+				// Unlock: remove local override
+				delete this.settings.localWidths[path];
+				void this.saveData(this.settings);
+				// Apply global width immediately to active leaf
+				const activeLeaf = this.app.workspace.getMostRecentLeaf();
+				if (activeLeaf) {
+					const px = this.settings.lineWidthPx;
+					const containerEl = activeLeaf.containerEl as HTMLElement;
+					containerEl.querySelectorAll('.cm-sizer, .markdown-preview-sizer').forEach(el => {
+						(el as HTMLElement).style.maxWidth = `${px}px`;
+						(el as HTMLElement).style.width = `${px}px`;
+					});
+				}
+			} else {
+				// Lock: store current global width as local starting point
+				this.settings.localWidths[path] = this.settings.lineWidthPx;
+				void this.saveData(this.settings);
+			}
+			updateLockState();
+		});
+
+		headerRow.appendChild(label);
+		headerRow.appendChild(lockBtn);
+
+		// --- Slider ---
 		const slider = document.createElement('input');
 		slider.type = 'range';
 		slider.min = '300';
 		slider.max = '1600';
-		slider.value = `${this.settings.lineWidthPx}`;
 		slider.classList.add('line-width-slider');
 
 		slider.addEventListener('input', async () => {
 			const value = parseInt(slider.value);
-			this.settings.lineWidthPx = value;
 			label.textContent = `${value}px`;
-			this.applyLineWidth();
-			this.updateLineWidthTooltip();
-			await this.saveData(this.settings);
 
-			// if we lost focus from the editor 
+			if (this.isLocked) {
+				// Local mode: store width for this file only
+				const path = this.getActiveFilePath();
+				if (path) {
+					this.settings.localWidths[path] = value;
+				}
+				// Apply only to active leaf
+				const activeLeaf = this.app.workspace.getMostRecentLeaf();
+				if (activeLeaf) {
+					const containerEl = activeLeaf.containerEl as HTMLElement;
+					containerEl.querySelectorAll('.cm-sizer, .markdown-preview-sizer').forEach(el => {
+						(el as HTMLElement).style.maxWidth = `${value}px`;
+						(el as HTMLElement).style.width = `${value}px`;
+					});
+				}
+				// Debounce save to avoid hammering disk while dragging
+				if (this.debounceTimer) window.clearTimeout(this.debounceTimer);
+				this.debounceTimer = window.setTimeout(async () => {
+					await this.saveData(this.settings);
+				}, 500);
+			} else {
+				// Global mode: update all non-locked files
+				this.settings.lineWidthPx = value;
+				this.applyLineWidth();
+				this.updateLineWidthTooltip();
+				await this.saveData(this.settings);
+			}
+
+			// Restore focus to editor
 			const recentLeaf = this.app.workspace.getMostRecentLeaf();
 			if (recentLeaf) this.app.workspace.setActiveLeaf(recentLeaf, { focus: true });
 
@@ -252,8 +397,11 @@ export default class StatusBarVaultName extends Plugin {
 			this.guideTimeout = window.setTimeout(() => this.fadeOutWidthGuides(), 2000);
 		});
 
-		this.sliderPopup.appendChild(label);
+		this.sliderPopup.appendChild(headerRow);
 		this.sliderPopup.appendChild(slider);
+
+		// Init state
+		updateLockState();
 
 		const rect = this.lineWidthEl.getBoundingClientRect();
 		this.sliderPopup.style.position = 'fixed';
@@ -284,7 +432,7 @@ export default class StatusBarVaultName extends Plugin {
 			const sizerEl = readingContainer.querySelector('.markdown-preview-sizer') as HTMLElement;
 			if (!sizerEl) return;
 			const containerRect = readingContainer.getBoundingClientRect();
-			const contentWidth = this.settings.lineWidthPx;
+			const contentWidth = this.getActiveFileWidth();
 			const offsetX = Math.max(0, (containerRect.width - contentWidth) / 2);
 
 			this.leftGuide = document.createElement('div');
