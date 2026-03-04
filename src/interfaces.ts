@@ -13,7 +13,7 @@ export interface SBVNSettings {
 
 export interface Vault {
     path: string;
-    ts: number;
+    ts: number; //timestamp of last modification
     open?: boolean;
 }
 

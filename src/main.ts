@@ -1,7 +1,7 @@
 import { MarkdownView, Plugin } from "obsidian";
 import { Settings } from "./settings.ts";
 import { vaultsMenu } from "./menu.ts";
-import { chevrons, chevronsHorizontal, DEFAULT_SETTINGS } from "./variables.ts";
+import { chevronsVertical, chevronsHorizontal, DEFAULT_SETTINGS } from "./variables.ts";
 import type { SBVNSettings } from "./interfaces.ts";
 
 export default class StatusBarVaultName extends Plugin {
@@ -23,21 +23,22 @@ export default class StatusBarVaultName extends Plugin {
 		const statusBar = document.querySelector('.status-bar');
 
 		this.vaultNameEl = document.createElement('div');
-		this.vaultNameEl.innerHTML = this.settings.reducedAtStart ? `${chevrons}` : `${chevrons} ${this.getTruncatedVaultName(vaultName)}`;
+		this.vaultNameEl.innerHTML = this.settings.reducedAtStart ? `${chevronsVertical}` : `${chevronsVertical} ${this.getTruncatedVaultName(vaultName)}`;
 		this.vaultNameEl.classList.add("status-bar-vault-name");
 		this.updateVaultNameElTooltip();
-		this.updateVaultNameVisibility();
-
+		
 		this.lineWidthEl = document.createElement('div');
 		this.lineWidthEl.innerHTML = chevronsHorizontal;
 		this.lineWidthEl.classList.add("status-bar-line-width");
 		this.updateLineWidthTooltip();
-
+		
 		statusBar?.prepend(this.lineWidthEl);
 		statusBar?.prepend(this.vaultNameEl);
-
+		
 		this.updateVaultNameElStyle();
 		this.updateLineWidthElStyle();
+
+		this.updateVaultNameVisibility();
 		this.updateLineWidthVisibility();
 
 		this.lineWidthStyleEl = document.createElement('style');
@@ -87,10 +88,12 @@ export default class StatusBarVaultName extends Plugin {
 		await this.saveData(this.settings);
 		this.updateVaultNameElStyle();
 		this.updateVaultName();
+		this.updateVaultNameElTooltip();
 		this.updateVaultNameVisibility();
+		
 		this.updateLineWidthElStyle();
-		this.updateLineWidthVisibility();
 		this.updateLineWidthTooltip();
+		this.updateLineWidthVisibility();
 		this.applyLineWidth();
 	}
 
@@ -101,8 +104,7 @@ export default class StatusBarVaultName extends Plugin {
 
 	updateVaultName(): void {
 		const vaultName = this.app.vault.getName();
-		this.vaultNameEl.innerHTML = this.settings.reducedAtStart ? `${chevrons}` : `${chevrons} ${this.getTruncatedVaultName(vaultName)}`;
-		this.updateVaultNameElTooltip();
+		this.vaultNameEl.innerHTML = this.settings.reducedAtStart ? `${chevronsVertical}` : `${chevronsVertical} ${this.getTruncatedVaultName(vaultName)}`;
 	}
 
 	updateVaultNameElTooltip(): void {
@@ -136,12 +138,20 @@ export default class StatusBarVaultName extends Plugin {
 		if (this.settings.enableLineWidth) {
 			// CSS: reset Obsidian constraints + centering only (no width here, handled by JS)
 			this.lineWidthStyleEl.textContent =
+				// Reset Obsidian's default "Readable line length" constraints 
+				// and other theme-specific width limits to ensure our custom width 
+				// can be applied without being clipped.
 				`.cm-contentContainer { max-width: unset !important; }` +
 				`.cm-content { max-width: unset !important; }` +
+				// Center the editor content horizontally when the custom width is active
 				`.cm-sizer { margin-left: auto !important; margin-right: auto !important; }` +
+				// Apply similar logic to Reading Mode and ensure box-sizing includes padding
 				`.markdown-preview-view .markdown-preview-sizer { margin-left: auto !important; margin-right: auto !important; max-width: 100% !important; box-sizing: border-box !important; }` +
+				// Prevent large diagrams (Mermaid) from breaking the layout
 				`.markdown-preview-sizer .mermaid svg { max-width: 100% !important; height: auto !important; }`;
+			// Listen for changes in the workspace size (like sidebars toggling) to adjust width
 			this.setupResizeObserver();
+			// Apply the current width settings immediately to all visible editor views
 			this.updateEditorWidths();
 		} else {
 			this.lineWidthStyleEl.textContent = '';
@@ -169,7 +179,7 @@ export default class StatusBarVaultName extends Plugin {
 			const sizerEl = editorEl.querySelector('.cm-sizer') as HTMLElement;
 			if (!sizerEl) return;
 			const width = (editorEl as HTMLElement).clientWidth;
-			if (width === 0) return;
+			if (width <= 0) return;
 			sizerEl.style.maxWidth = `${px}px`;
 		});
 
@@ -233,7 +243,7 @@ export default class StatusBarVaultName extends Plugin {
 		const rect = this.lineWidthEl.getBoundingClientRect();
 		this.sliderPopup.style.position = 'fixed';
 		this.sliderPopup.style.bottom = `${window.innerHeight - rect.top + 5}px`;
-		this.sliderPopup.style.left = `${rect.left}px`;
+		this.sliderPopup.style.right = `${window.innerWidth - rect.right}px`;
 
 		document.body.appendChild(this.sliderPopup);
 	}
@@ -285,7 +295,7 @@ export default class StatusBarVaultName extends Plugin {
 		if (!contentEl) return;
 
 		const rect = contentEl.getBoundingClientRect();
-		if (rect.width === 0) return;
+		if (rect.width <= 0) return;
 
 		this.leftGuide = document.createElement('div');
 		this.leftGuide.classList.add('line-width-guide');
