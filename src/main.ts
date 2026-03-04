@@ -156,9 +156,11 @@ export default class StatusBarVaultName extends Plugin {
 		} else {
 			this.lineWidthStyleEl.textContent = '';
 			this.cleanupResizeObserver();
-			document.querySelectorAll('.cm-sizer, .markdown-preview-sizer').forEach(el => {
-				(el as HTMLElement).style.removeProperty('max-width');
-				(el as HTMLElement).style.removeProperty('width');
+			this.getAllDocuments().forEach(doc => {
+				doc.querySelectorAll('.cm-sizer, .markdown-preview-sizer').forEach(el => {
+					(el as HTMLElement).style.removeProperty('max-width');
+					(el as HTMLElement).style.removeProperty('width');
+				});
 			});
 		}
 	}
@@ -171,26 +173,35 @@ export default class StatusBarVaultName extends Plugin {
 		if (workspaceEl) this.resizeObserver.observe(workspaceEl);
 	}
 
+	getAllDocuments(): Document[] {
+		const docs = new Set<Document>();
+		docs.add(document);
+		this.app.workspace.iterateAllLeaves(leaf => {
+			docs.add(leaf.containerEl.ownerDocument);
+		});
+		return Array.from(docs);
+	}
+
 	updateEditorWidths(): void {
 		const px = this.settings.lineWidthPx;
 
-		// Live preview / source mode — base width from .cm-editor (ignores readable line width)
-		document.querySelectorAll('.cm-editor').forEach(editorEl => {
-			const sizerEl = editorEl.querySelector('.cm-sizer') as HTMLElement;
-			if (!sizerEl) return;
-			const width = (editorEl as HTMLElement).clientWidth;
-			if (width <= 0) return;
-			sizerEl.style.maxWidth = `${px}px`;
-		});
+		this.getAllDocuments().forEach(doc => {
+			doc.querySelectorAll('.cm-editor').forEach(editorEl => {
+				const sizerEl = editorEl.querySelector('.cm-sizer') as HTMLElement;
+				if (!sizerEl) return;
+				const width = (editorEl as HTMLElement).clientWidth;
+				if (width <= 0) return;
+				sizerEl.style.maxWidth = `${px}px`;
+			});
 
-		// Reading mode
-		document.querySelectorAll('.markdown-preview-view').forEach(previewEl => {
-			const sizerEl = previewEl.querySelector('.markdown-preview-sizer') as HTMLElement;
-			if (!sizerEl) return;
-			const width = (previewEl as HTMLElement).clientWidth;
-			if (width <= 0) return;
-			sizerEl.style.maxWidth = `${px}px`;
-			sizerEl.style.width = `${px}px`;
+			doc.querySelectorAll('.markdown-preview-view').forEach(previewEl => {
+				const sizerEl = previewEl.querySelector('.markdown-preview-sizer') as HTMLElement;
+				if (!sizerEl) return;
+				const width = (previewEl as HTMLElement).clientWidth;
+				if (width <= 0) return;
+				sizerEl.style.maxWidth = `${px}px`;
+				sizerEl.style.width = `${px}px`;
+			});
 		});
 	}
 
