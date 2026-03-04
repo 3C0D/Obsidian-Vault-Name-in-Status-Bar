@@ -1,63 +1,58 @@
 # Vault Name in Status Bar
 
-## Key Features:
+## Key Features
 
-- **Dynamic Vault Display:** Instantly view your current vault's name in the Obsidian status bar.
-- **Customizable Appearance:** Personalize the display to match your workspace, ensuring a seamless integration.
-- **Vaults Menu:** One-click access to the vaults menu for easy navigation.
-- **Editor Line Width Control:** Adjust the editor line width directly from the status bar with an interactive slider and visual guides.
+- **Vault Name in Status Bar:** See your vault name at a glance, with one-click access to the vaults menu.
+- **Per-Tab Line Width Control:** Each Markdown tab has its own width control icon. Adjust globally or lock any file to its own width.
 
-## Benefits:
+## Vault Name
 
-- **Enhanced Efficiency:** This plugin provides the advantage of keeping this information always visible in the status bar, and providing another quick access to the vaults menu.
+The vault name appears in the status bar. Click it to open the vaults menu for quick switching. You can customize its color, font size, and maximum display length — or hide it entirely.
 
-The vault name appears in the status bar with quick access to the vaults menu. The settings panel allows you to customize its appearance, including truncating the name to a maximum length:
 ![alt text](Assets/example.png)
 
-The line width control allows you to adjust the editor width directly from the status bar:
+## Line Width Control
+
+Each Markdown tab has a `<->` icon in its top-right header. Click it to open a width slider (300px–1600px). Visual guides appear on both sides of the editor while adjusting.
+
+The slider works across all windows — including split panes and secondary windows.
+
+**Global mode (lock open):** the slider adjusts the width for all unlocked files.
+
+![line width](Assets/line_width_0.png)
+
+**Local mode (lock closed):** the slider adjusts the width for this file only. A small lock badge appears on the icon as a reminder.
+
 ![line width](Assets/line_width.png)
 
-## Features
+Clicking the lock again removes the local override and reverts to the global width.
 
-- Displays your current vault name in the status bar
-- Click to open a menu for quick vault switching
-- Customizable appearance
-- Vault name length customizable
-- Editor line width control via a horizontal arrow icon in the status bar
-- Interactive slider popup to adjust line width in pixels
-- Visual guides showing the width boundaries while adjusting
-- Tooltips on status bar elements
+### Disabling the feature
+
+Disabling "Enable Line Width Control" in settings hides all icons and restores the default Obsidian line width. Re-enabling it restores your previous settings.
 
 ## Settings
 
-- **Enable vault name**: Show/hide the vault name in the status bar
-- **Vault Name Color**: Choose the color of the vault name in the status bar
-- **Font Size**: Adjust the font size of the vault name (in em)
-- **Enable Maximum Length**: Option to truncate the vault name if it exceeds the maximum length
-- **Maximum Length**: Set the maximum number of characters to display in the vault name
-- **Enable Line Width Control**: Show/hide the line width control icon in the status bar
-- **Line Width Color**: Choose the color of the line width icon in the status bar
-
-## Usage
-
-- The vault name appears in the status bar
-- Click on the vault name to open a menu with vault name toggle option and vaults context menu options
-- The current vault is indicated with a checkmark in the menu
-- Click on the horizontal arrow icon (`<->`) to open a slider controlling the editor line width (300px to 1600px). Visual guides appear on each side of the editor during adjustment.
+- **Enable vault name**: Show/hide the vault name
+- **Vault Name Color**: Color of the vault name
+- **Font Size**: Font size of the vault name (in em)
+- **Enable Maximum Length**: Truncate the vault name if too long
+- **Maximum Length**: Max characters to display
+- **Enable Line Width Control**: Show/hide the width control icons
+- **Line Width Color**: Color of the `<->` icon
 
 ## Installation
 
-1. copy files from the release
-2. install them in your vault/.obsidian/plugins/status_vault_bar or use Brat
+1. Copy files from the release
+2. Install them in `your-vault/.obsidian/plugins/status_vault_bar` or use BRAT
 
 ## Support
 
-If you encounter any issues or have suggestions for improvements, please open an issue on the [GitHub repository](https://github.com/3C0D/Obsidian-Vault-Name-in-Status-Bar).
+Issues and suggestions: [GitHub repository](https://github.com/3C0D/Obsidian-Vault-Name-in-Status-Bar).
 
 ## License
 
-This project is licensed under the MIT License.
-
+MIT License.
 
 ## Development
 

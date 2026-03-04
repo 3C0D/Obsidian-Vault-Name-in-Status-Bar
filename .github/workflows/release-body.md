@@ -1,1 +1,1 @@
-Now applied on pop up widows, split windows. get back focus if lost on explorer for instance.
+Per-tab editor line width control with local/global lock system

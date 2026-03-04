@@ -1,26 +1,25 @@
-import { Plugin } from "obsidian";
+import { Plugin, WorkspaceLeaf } from "obsidian";
 import { Settings } from "./settings.ts";
 import { vaultsMenu } from "./menu.ts";
-import { chevronsVertical, chevronsHorizontal, lockOpen, lockClosed, DEFAULT_SETTINGS } from "./variables.ts";
+import { chevronsVertical, chevronsHorizontal, lockOpen, lockClosed, lockBadge, DEFAULT_SETTINGS } from "./variables.ts";
 import type { SBVNSettings } from "./interfaces.ts";
 
 export default class StatusBarVaultName extends Plugin {
 	settings: SBVNSettings;
 	vaultNameEl: HTMLDivElement;
-	lineWidthEl: HTMLDivElement;
 	lineWidthStyleEl: HTMLStyleElement;
-	sliderPopup: HTMLDivElement | null = null;
 	leftGuide: HTMLDivElement | null = null;
 	rightGuide: HTMLDivElement | null = null;
 	guideTimeout: number = 0;
 	debounceTimer: number = 0;
-	boundClosePopup: (e: MouseEvent) => void;
 	resizeObserver: ResizeObserver | null = null;
 
-	get isLocked(): boolean {
-		const path = this.getActiveFilePath();
-		return path !== null && this.settings.localWidths[path] !== undefined;
-	}
+	// Tracks open popups: one per leaf (keyed by leaf id)
+	activePopups: Map<string, HTMLDivElement> = new Map();
+	// Tracks injected icons: one per leaf (keyed by leaf id)
+	leafIcons: Map<string, HTMLDivElement> = new Map();
+	// Tracks documents that already have click listeners registered
+	registeredDocs: Set<Document> = new Set();
 
 	async onload(): Promise<void> {
 		await this.loadSettings();
@@ -28,63 +27,66 @@ export default class StatusBarVaultName extends Plugin {
 		const vaultName = this.app.vault.getName();
 		const statusBar = document.querySelector('.status-bar');
 
+		// Vault name (unchanged)
 		this.vaultNameEl = document.createElement('div');
 		this.vaultNameEl.innerHTML = this.settings.reducedAtStart ? `${chevronsVertical}` : `${chevronsVertical} ${this.getTruncatedVaultName(vaultName)}`;
 		this.vaultNameEl.classList.add("status-bar-vault-name");
 		this.updateVaultNameElTooltip();
-		
-		this.lineWidthEl = document.createElement('div');
-		this.lineWidthEl.innerHTML = chevronsHorizontal;
-		this.lineWidthEl.classList.add("status-bar-line-width");
-		this.updateLineWidthTooltip();
-		
-		statusBar?.prepend(this.lineWidthEl);
 		statusBar?.prepend(this.vaultNameEl);
-		
 		this.updateVaultNameElStyle();
-		this.updateLineWidthElStyle();
-
 		this.updateVaultNameVisibility();
-		this.updateLineWidthVisibility();
 
+		// Global CSS style element
 		this.lineWidthStyleEl = document.createElement('style');
 		document.head.appendChild(this.lineWidthStyleEl);
 		this.applyLineWidth();
 
+		this.vaultNameEl.addEventListener('click', (e) => vaultsMenu(this, this.app, e));
+
+		// Inject icons into all existing leaves, then watch for new ones
 		this.registerEvent(
 			this.app.workspace.on('layout-change', () => {
 				this.updateEditorWidths();
-				// Sync slider UI to active file's width when switching tabs
-				this.syncSliderToActiveFile();
+				this.injectAllLeafIcons();
 			})
 		);
 
-		this.vaultNameEl.addEventListener('click', (e) => vaultsMenu(this, this.app, e));
+		// Close any popup when clicking outside (main document)
+		this.registerDomEvent(document, 'click', this.onDocumentClick.bind(this));
 
-		this.lineWidthEl.addEventListener('click', (e) => {
-			e.stopPropagation();
-			this.toggleSliderPopup();
+		// Initial injection
+		requestAnimationFrame(() => {
+			this.injectAllLeafIcons();
 		});
-
-		// Closes the popup when clicking outside of it (on the chevrons or the popup itself)
-		this.boundClosePopup = (e: MouseEvent): void => {
-			if (this.sliderPopup && !this.sliderPopup.contains(e.target as Node) && !this.lineWidthEl.contains(e.target as Node)) {
-				this.hideSliderPopup();
-			}
-		};
-		document.addEventListener('click', this.boundClosePopup);
 	}
 
 	onunload(): void {
 		this.vaultNameEl.detach();
-		this.lineWidthEl.detach();
 		this.lineWidthStyleEl.remove();
-		this.hideSliderPopup();
+		// Remove all injected icons
+		this.leafIcons.forEach(el => el.remove());
+		this.leafIcons.clear();
+		// Close all popups
+		this.activePopups.forEach(popup => popup.remove());
+		this.activePopups.clear();
 		this.hideWidthGuides();
-		document.removeEventListener('click', this.boundClosePopup);
+
 		if (this.guideTimeout) window.clearTimeout(this.guideTimeout);
 		if (this.debounceTimer) window.clearTimeout(this.debounceTimer);
 		this.cleanupResizeObserver();
+	}
+
+	onDocumentClick(e: MouseEvent): void {
+		this.activePopups.forEach((popup, leafId) => {
+			const icon = this.leafIcons.get(leafId);
+			if (
+				!popup.contains(e.target as Node) &&
+				!(icon && icon.contains(e.target as Node))
+			) {
+				popup.remove();
+				this.activePopups.delete(leafId);
+			}
+		});
 	}
 
 	async loadSettings(): Promise<void> {
@@ -93,7 +95,6 @@ export default class StatusBarVaultName extends Plugin {
 			DEFAULT_SETTINGS,
 			await this.loadData()
 		);
-		// Ensure localWidths exists even on old installs
 		if (!this.settings.localWidths) this.settings.localWidths = {};
 	}
 
@@ -103,12 +104,12 @@ export default class StatusBarVaultName extends Plugin {
 		this.updateVaultName();
 		this.updateVaultNameElTooltip();
 		this.updateVaultNameVisibility();
-		
-		this.updateLineWidthElStyle();
-		this.updateLineWidthTooltip();
-		this.updateLineWidthVisibility();
 		this.applyLineWidth();
+		this.injectAllLeafIcons();
+		this.updateAllLeafIconColors();
 	}
+
+	// ---------------------------- Vault name --------------------------------
 
 	updateVaultNameElStyle(): void {
 		this.vaultNameEl.style.color = this.settings.color;
@@ -135,73 +136,277 @@ export default class StatusBarVaultName extends Plugin {
 		return name;
 	}
 
-	updateLineWidthElStyle(): void {
-		this.lineWidthEl.style.color = this.settings.lineWidthColor;
+	updateAllLeafIconColors(): void {
+		this.leafIcons.forEach(iconEl => {
+			iconEl.style.color = this.settings.lineWidthColor;
+		});
 	}
 
-	updateLineWidthVisibility(): void {
-		this.lineWidthEl.style.display = this.settings.enableLineWidth ? 'flex' : 'none';
+	// ---------------------------- Per-leaf icon injection -------------------
+
+	// Returns a stable id for a leaf
+	getLeafId(leaf: WorkspaceLeaf): string {
+		return (leaf as any).id ?? '';
 	}
 
-	updateLineWidthTooltip(): void {
-		this.lineWidthEl.setAttribute('aria-label', `Editor width: ${this.settings.lineWidthPx}px`);
+	// Injects the line width icon into all Markdown leaves that don't have one yet
+	injectAllLeafIcons(): void {
+		this.app.workspace.iterateAllLeaves(leaf => {
+			const viewType = leaf.view?.getViewType();
+			if (viewType !== 'markdown') return;
+
+			const leafId = this.getLeafId(leaf);
+			if (!leafId) return;
+
+			// Check if icon already injected and still in DOM
+			const existing = this.leafIcons.get(leafId);
+			if (existing && existing.isConnected) {
+				// Just refresh its state
+				existing.style.display = this.settings.enableLineWidth ? 'flex' : 'none';
+				this.refreshLeafIcon(leaf);
+				return;
+			}
+
+			// actionsEl is the right-side button area in the leaf header
+			const actionsEl = (leaf.view as any).actionsEl as HTMLElement | undefined;
+			if (!actionsEl) return;
+
+			// Register click listener on this document if not already done
+			const ownerDoc = actionsEl.ownerDocument;
+			if (!this.registeredDocs.has(ownerDoc)) {
+				this.registeredDocs.add(ownerDoc);
+				this.registerDomEvent(ownerDoc, 'click', this.onDocumentClick.bind(this));
+			}
+
+			const iconEl = ownerDoc.createElement('div');
+			iconEl.classList.add('lw-leaf-icon');
+			iconEl.style.cssText = 'position:relative;display:flex;align-items:center;cursor:pointer;padding:0 4px;color:var(--icon-color);';
+			iconEl.innerHTML = `<span class="lw-icon">${chevronsHorizontal}</span>`;
+			iconEl.setAttribute('aria-label', this.getTooltipForLeaf(leaf));
+
+			// Insert before the first existing action button
+			actionsEl.prepend(iconEl);
+			this.leafIcons.set(leafId, iconEl);
+
+			// Apply current settings
+			iconEl.style.color = this.settings.lineWidthColor;
+			iconEl.style.display = this.settings.enableLineWidth ? 'flex' : 'none';
+
+			this.refreshLeafIcon(leaf);
+
+			iconEl.addEventListener('click', (e) => {
+				e.stopPropagation();
+				this.togglePopupForLeaf(leaf, iconEl);
+			});
+		});
+
+		// Clean up icons for leaves that no longer exist
+		const activeLeafIds = new Set<string>();
+		this.app.workspace.iterateAllLeaves(leaf => {
+			activeLeafIds.add(this.getLeafId(leaf));
+		});
+		this.leafIcons.forEach((el, id) => {
+			if (!activeLeafIds.has(id)) {
+				el.remove();
+				this.leafIcons.delete(id);
+				const popup = this.activePopups.get(id);
+				if (popup) { popup.remove(); this.activePopups.delete(id); }
+			}
+		});
 	}
 
-	// Returns the active file path, or null if none
-	getActiveFilePath(): string | null {
-		const file = this.app.workspace.getActiveFile();
-		return file ? file.path : null;
+	// Updates the badge and tooltip on the icon for a given leaf
+	refreshLeafIcon(leaf: WorkspaceLeaf): void {
+		const leafId = this.getLeafId(leaf);
+		const iconEl = this.leafIcons.get(leafId);
+		if (!iconEl) return;
+
+		const filePath = this.getFilePathForLeaf(leaf);
+		const locked = filePath !== null && this.settings.localWidths[filePath] !== undefined;
+
+		const existingBadge = iconEl.querySelector('.lw-lock-badge');
+		if (locked && !existingBadge) {
+			const b = iconEl.ownerDocument.createElement('span');
+			b.classList.add('lw-lock-badge');
+			b.innerHTML = lockBadge;
+			b.style.cssText = 'position:absolute;top:-4px;right:-4px;width:10px;height:10px;color:var(--interactive-accent);pointer-events:none;';
+			iconEl.appendChild(b);
+		} else if (!locked && existingBadge) {
+			existingBadge.remove();
+		}
+
+		iconEl.setAttribute('aria-label', this.getTooltipForLeaf(leaf));
 	}
 
-	// Returns the width to display for the currently active file
-	getActiveFileWidth(): number {
-		const path = this.getActiveFilePath();
-		if (path && this.settings.localWidths[path] !== undefined) {
-			return this.settings.localWidths[path];
+	getFilePathForLeaf(leaf: WorkspaceLeaf): string | null {
+		return (leaf.view as any)?.file?.path ?? null;
+	}
+
+	getWidthForLeafPath(filePath: string | null): number {
+		if (filePath && this.settings.localWidths[filePath] !== undefined) {
+			return this.settings.localWidths[filePath];
 		}
 		return this.settings.lineWidthPx;
 	}
 
-	// Syncs the slider and label in the popup to the active file's width
-	syncSliderToActiveFile(): void {
-		if (!this.sliderPopup) return;
-		const width = this.getActiveFileWidth();
-		const slider = this.sliderPopup.querySelector('input[type="range"]') as HTMLInputElement | null;
-		const label = this.sliderPopup.querySelector('.line-width-slider-label') as HTMLElement | null;
-		if (slider) slider.value = `${width}`;
-		if (label) label.textContent = `${width}px`;
+	getTooltipForLeaf(leaf: WorkspaceLeaf): string {
+		const filePath = this.getFilePathForLeaf(leaf);
+		const width = this.getWidthForLeafPath(filePath);
+		const locked = filePath !== null && this.settings.localWidths[filePath] !== undefined;
+		return `Editor width: ${width}px${locked ? ' (local)' : ' (global)'}`;
+	}
 
-		// Refresh lock icon to reflect active file state
-		const lockBtn = this.sliderPopup?.querySelector('.line-width-lock-btn') as HTMLElement | null;
-		if (lockBtn) {
-			if (this.isLocked) {
-				lockBtn.innerHTML = lockClosed;
-				lockBtn.style.color = 'var(--interactive-accent)';
-			} else {
-				lockBtn.innerHTML = lockOpen;
-				lockBtn.style.color = 'var(--text-muted)';
-			}
+	// ---------------------------- Popup per leaf ----------------------------
+
+	togglePopupForLeaf(leaf: WorkspaceLeaf, iconEl: HTMLDivElement): void {
+		const leafId = this.getLeafId(leaf);
+		const existing = this.activePopups.get(leafId);
+		if (existing) {
+			existing.remove();
+			this.activePopups.delete(leafId);
+		} else {
+			this.showPopupForLeaf(leaf, iconEl);
 		}
 	}
 
+	showPopupForLeaf(leaf: WorkspaceLeaf, iconEl: HTMLDivElement): void {
+		const leafId = this.getLeafId(leaf);
+
+		// Close any other open popup
+		this.activePopups.forEach((popup, id) => {
+			if (id !== leafId) { popup.remove(); this.activePopups.delete(id); }
+		});
+
+		const filePath = this.getFilePathForLeaf(leaf);
+
+		const isLockedForLeaf = (): boolean =>
+			filePath !== null && this.settings.localWidths[filePath] !== undefined;
+
+		const getWidthForLeaf = (): number => this.getWidthForLeafPath(filePath);
+
+		const popup = document.createElement('div');
+		popup.classList.add('line-width-slider-popup');
+
+		// Header row
+		const headerRow = document.createElement('div');
+		headerRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;width:100%;';
+
+		const label = document.createElement('div');
+		label.classList.add('line-width-slider-label');
+
+		const lockBtn = document.createElement('button');
+		lockBtn.classList.add('line-width-lock-btn');
+		lockBtn.style.cssText = 'background:none;border:none;cursor:pointer;padding:2px;display:flex;align-items:center;transition:color 0.2s;';
+
+		const slider = document.createElement('input');
+		slider.type = 'range';
+		slider.min = '300';
+		slider.max = '1600';
+		slider.classList.add('line-width-slider');
+
+		const updateLockState = (): void => {
+			const width = getWidthForLeaf();
+			label.textContent = `${width}px`;
+			slider.value = `${width}`;
+			if (isLockedForLeaf()) {
+				lockBtn.innerHTML = lockClosed;
+				lockBtn.style.color = 'var(--interactive-accent)';
+				lockBtn.setAttribute('aria-label', 'Local width (this file only)');
+			} else {
+				lockBtn.innerHTML = lockOpen;
+				lockBtn.style.color = 'var(--text-muted)';
+				lockBtn.setAttribute('aria-label', 'Global width (all files)');
+			}
+			this.refreshLeafIcon(leaf);
+		};
+
+		lockBtn.addEventListener('click', (e) => {
+			e.stopPropagation();
+			if (!filePath) return;
+			if (isLockedForLeaf()) {
+				// Unlock: remove local override, apply global width immediately
+				delete this.settings.localWidths[filePath];
+				void this.saveData(this.settings);
+				this.applyWidthToLeaf(leaf, this.settings.lineWidthPx);
+			} else {
+				// Lock: store current global width as local starting point
+				this.settings.localWidths[filePath] = this.settings.lineWidthPx;
+				void this.saveData(this.settings);
+			}
+			updateLockState();
+		});
+
+		slider.addEventListener('input', async () => {
+			const value = parseInt(slider.value);
+			label.textContent = `${value}px`;
+
+			if (isLockedForLeaf()) {
+				// Local mode: apply only to this leaf
+				if (filePath) this.settings.localWidths[filePath] = value;
+				this.applyWidthToLeaf(leaf, value);
+				if (this.debounceTimer) window.clearTimeout(this.debounceTimer);
+				this.debounceTimer = window.setTimeout(async () => {
+					await this.saveData(this.settings);
+				}, 500);
+			} else {
+				// Global mode: apply to all non-locked leaves
+				this.settings.lineWidthPx = value;
+				this.applyLineWidth();
+				await this.saveData(this.settings);
+			}
+
+			this.refreshLeafIcon(leaf);
+
+			// Restore focus
+			this.app.workspace.setActiveLeaf(leaf, { focus: true });
+
+			requestAnimationFrame(() => this.showWidthGuidesForLeaf(leaf));
+			if (this.guideTimeout) window.clearTimeout(this.guideTimeout);
+			this.guideTimeout = window.setTimeout(() => this.fadeOutWidthGuides(), 2000);
+		});
+
+		headerRow.appendChild(label);
+		headerRow.appendChild(lockBtn);
+		popup.appendChild(headerRow);
+		popup.appendChild(slider);
+
+		updateLockState();
+
+		// Position: below the icon, right-aligned on icon's right edge
+		const rect = iconEl.getBoundingClientRect();
+		const ownerDoc = iconEl.ownerDocument;
+		const ownerWin = ownerDoc.defaultView!;
+		popup.style.position = 'fixed';
+		popup.style.top = `${rect.bottom + 5}px`;
+		popup.style.right = `${ownerWin.innerWidth - rect.right}px`;
+
+		ownerDoc.body.appendChild(popup);
+		this.activePopups.set(leafId, popup);
+	}
+
+	// Applies a width directly to a specific leaf's DOM elements
+	applyWidthToLeaf(leaf: WorkspaceLeaf, px: number): void {
+		const containerEl = leaf.containerEl as HTMLElement;
+		containerEl.querySelectorAll('.cm-sizer').forEach(el => {
+			(el as HTMLElement).style.maxWidth = `${px}px`;
+		});
+		containerEl.querySelectorAll('.markdown-preview-sizer').forEach(el => {
+			(el as HTMLElement).style.maxWidth = `${px}px`;
+			(el as HTMLElement).style.width = `${px}px`;
+		});
+	}
+
+	// ---------------------------- CSS / widths ------------------------------
+
 	applyLineWidth(): void {
 		if (this.settings.enableLineWidth) {
-			// CSS: reset Obsidian constraints + centering only (no width here, handled by JS)
 			this.lineWidthStyleEl.textContent =
-				// Reset Obsidian's default "Readable line length" constraints 
-				// and other theme-specific width limits to ensure our custom width 
-				// can be applied without being clipped.
 				`.cm-contentContainer { max-width: unset !important; }` +
 				`.cm-content { max-width: unset !important; }` +
-				// Center the editor content horizontally when the custom width is active
 				`.cm-sizer { margin-left: auto !important; margin-right: auto !important; }` +
-				// Apply similar logic to Reading Mode and ensure box-sizing includes padding
 				`.markdown-preview-view .markdown-preview-sizer { margin-left: auto !important; margin-right: auto !important; max-width: 100% !important; box-sizing: border-box !important; }` +
-				// Prevent large diagrams (Mermaid) from breaking the layout
 				`.markdown-preview-sizer .mermaid svg { max-width: 100% !important; height: auto !important; }`;
-			// Listen for changes in the workspace size (like sidebars toggling) to adjust width
 			this.setupResizeObserver();
-			// Apply the current width settings immediately to all visible editor views
 			this.updateEditorWidths();
 		} else {
 			this.lineWidthStyleEl.textContent = '';
@@ -215,7 +420,6 @@ export default class StatusBarVaultName extends Plugin {
 		}
 	}
 
-	// Recalculates editor widths whenever the workspace is resized (window resize, side panel toggle...)
 	setupResizeObserver(): void {
 		this.cleanupResizeObserver();
 		this.resizeObserver = new ResizeObserver(() => this.updateEditorWidths());
@@ -232,36 +436,11 @@ export default class StatusBarVaultName extends Plugin {
 		return Array.from(docs);
 	}
 
-	// Resolves the width to apply for a given leaf (local override or global)
-	getWidthForLeaf(leaf: any): number {
-		const file = leaf.view?.file;
-		if (file && this.settings.localWidths[file.path] !== undefined) {
-			return this.settings.localWidths[file.path];
-		}
-		return this.settings.lineWidthPx;
-	}
-
 	updateEditorWidths(): void {
 		this.app.workspace.iterateAllLeaves(leaf => {
-			const px = this.getWidthForLeaf(leaf);
-			const containerEl = leaf.containerEl as HTMLElement;
-
-			containerEl.querySelectorAll('.cm-editor').forEach(editorEl => {
-				const sizerEl = editorEl.querySelector('.cm-sizer') as HTMLElement;
-				if (!sizerEl) return;
-				const width = (editorEl as HTMLElement).clientWidth;
-				if (width <= 0) return;
-				sizerEl.style.maxWidth = `${px}px`;
-			});
-
-			containerEl.querySelectorAll('.markdown-preview-view').forEach(previewEl => {
-				const sizerEl = previewEl.querySelector('.markdown-preview-sizer') as HTMLElement;
-				if (!sizerEl) return;
-				const width = (previewEl as HTMLElement).clientWidth;
-				if (width <= 0) return;
-				sizerEl.style.maxWidth = `${px}px`;
-				sizerEl.style.width = `${px}px`;
-			});
+			const filePath = this.getFilePathForLeaf(leaf);
+			const px = this.getWidthForLeafPath(filePath);
+			this.applyWidthToLeaf(leaf, px);
 		});
 	}
 
@@ -272,168 +451,23 @@ export default class StatusBarVaultName extends Plugin {
 		}
 	}
 
-	toggleSliderPopup(): void {
-		if (this.sliderPopup) {
-			this.hideSliderPopup();
-		} else {
-			this.showSliderPopup();
-		}
-	}
+	// ---------------------------- Width guides ------------------------------
 
-	showSliderPopup(): void {
-		this.sliderPopup = document.createElement('div');
-		this.sliderPopup.classList.add('line-width-slider-popup');
-
-		// --- Header row: label + lock button ---
-		const headerRow = document.createElement('div');
-		headerRow.style.display = 'flex';
-		headerRow.style.alignItems = 'center';
-		headerRow.style.justifyContent = 'space-between';
-		headerRow.style.width = '100%';
-
-		const label = document.createElement('div');
-		label.classList.add('line-width-slider-label');
-
-		const lockBtn = document.createElement('button');
-		lockBtn.classList.add('line-width-lock-btn');
-		lockBtn.style.background = 'none';
-		lockBtn.style.border = 'none';
-		lockBtn.style.cursor = 'pointer';
-		lockBtn.style.padding = '2px';
-		lockBtn.style.display = 'flex';
-		lockBtn.style.alignItems = 'center';
-		lockBtn.style.color = 'var(--text-muted)';
-		lockBtn.style.transition = 'color 0.2s';
-
-		const updateLockState = (): void => {
-			const width = this.getActiveFileWidth();
-			label.textContent = `${width}px`;
-			if (this.isLocked) {
-				lockBtn.innerHTML = lockClosed;
-				lockBtn.style.color = 'var(--interactive-accent)';
-				lockBtn.setAttribute('aria-label', 'Local width (this file only)');
-			} else {
-				lockBtn.innerHTML = lockOpen;
-				lockBtn.style.color = 'var(--text-muted)';
-				lockBtn.setAttribute('aria-label', 'Global width (all files)');
-			}
-			slider.value = `${width}`;
-		};
-
-		lockBtn.addEventListener('click', (e) => {
-			e.stopPropagation();
-			const path = this.getActiveFilePath();
-			if (!path) return;
-			if (this.isLocked) {
-				// Unlock: remove local override
-				delete this.settings.localWidths[path];
-				void this.saveData(this.settings);
-				// Apply global width immediately to active leaf
-				const activeLeaf = this.app.workspace.getMostRecentLeaf();
-				if (activeLeaf) {
-					const px = this.settings.lineWidthPx;
-					const containerEl = activeLeaf.containerEl as HTMLElement;
-					containerEl.querySelectorAll('.cm-sizer, .markdown-preview-sizer').forEach(el => {
-						(el as HTMLElement).style.maxWidth = `${px}px`;
-						(el as HTMLElement).style.width = `${px}px`;
-					});
-				}
-			} else {
-				// Lock: store current global width as local starting point
-				this.settings.localWidths[path] = this.settings.lineWidthPx;
-				void this.saveData(this.settings);
-			}
-			updateLockState();
-		});
-
-		headerRow.appendChild(label);
-		headerRow.appendChild(lockBtn);
-
-		// --- Slider ---
-		const slider = document.createElement('input');
-		slider.type = 'range';
-		slider.min = '300';
-		slider.max = '1600';
-		slider.classList.add('line-width-slider');
-
-		slider.addEventListener('input', async () => {
-			const value = parseInt(slider.value);
-			label.textContent = `${value}px`;
-
-			if (this.isLocked) {
-				// Local mode: store width for this file only
-				const path = this.getActiveFilePath();
-				if (path) {
-					this.settings.localWidths[path] = value;
-				}
-				// Apply only to active leaf
-				const activeLeaf = this.app.workspace.getMostRecentLeaf();
-				if (activeLeaf) {
-					const containerEl = activeLeaf.containerEl as HTMLElement;
-					containerEl.querySelectorAll('.cm-sizer, .markdown-preview-sizer').forEach(el => {
-						(el as HTMLElement).style.maxWidth = `${value}px`;
-						(el as HTMLElement).style.width = `${value}px`;
-					});
-				}
-				// Debounce save to avoid hammering disk while dragging
-				if (this.debounceTimer) window.clearTimeout(this.debounceTimer);
-				this.debounceTimer = window.setTimeout(async () => {
-					await this.saveData(this.settings);
-				}, 500);
-			} else {
-				// Global mode: update all non-locked files
-				this.settings.lineWidthPx = value;
-				this.applyLineWidth();
-				this.updateLineWidthTooltip();
-				await this.saveData(this.settings);
-			}
-
-			// Restore focus to editor
-			const recentLeaf = this.app.workspace.getMostRecentLeaf();
-			if (recentLeaf) this.app.workspace.setActiveLeaf(recentLeaf, { focus: true });
-
-			requestAnimationFrame(() => this.showWidthGuides());
-			if (this.guideTimeout) window.clearTimeout(this.guideTimeout);
-			this.guideTimeout = window.setTimeout(() => this.fadeOutWidthGuides(), 2000);
-		});
-
-		this.sliderPopup.appendChild(headerRow);
-		this.sliderPopup.appendChild(slider);
-
-		// Init state
-		updateLockState();
-
-		const rect = this.lineWidthEl.getBoundingClientRect();
-		this.sliderPopup.style.position = 'fixed';
-		this.sliderPopup.style.bottom = `${window.innerHeight - rect.top + 5}px`;
-		this.sliderPopup.style.right = `${window.innerWidth - rect.right}px`;
-
-		document.body.appendChild(this.sliderPopup);
-	}
-
-	hideSliderPopup(): void {
-		if (this.sliderPopup) {
-			this.sliderPopup.remove();
-			this.sliderPopup = null;
-		}
-	}
-
-	showWidthGuides(): void {
+	showWidthGuidesForLeaf(leaf: WorkspaceLeaf): void {
 		this.hideWidthGuides();
 
-		const activeLeaf = document.querySelector('.workspace-leaf.mod-active');
-		if (!activeLeaf) return;
+		const ownerDoc = leaf.containerEl.ownerDocument;
+		if (ownerDoc !== document) return;
+
+		const filePath = this.getFilePathForLeaf(leaf);
+		const px = this.getWidthForLeafPath(filePath);
+		const containerEl = leaf.containerEl as HTMLElement;
 
 		// Reading mode
-		const readingContainer = activeLeaf.querySelector('.markdown-reading-view') as HTMLElement | null;
-	
-		// Ensure the container is visible to not enter this condition if not in reading mode and cause a bug
+		const readingContainer = containerEl.querySelector('.markdown-reading-view') as HTMLElement | null;
 		if (readingContainer && readingContainer.offsetParent !== null) {
-			const sizerEl = readingContainer.querySelector('.markdown-preview-sizer') as HTMLElement;
-			if (!sizerEl) return;
 			const containerRect = readingContainer.getBoundingClientRect();
-			const contentWidth = this.getActiveFileWidth();
-			const offsetX = Math.max(0, (containerRect.width - contentWidth) / 2);
+			const offsetX = Math.max(0, (containerRect.width - px) / 2);
 
 			this.leftGuide = document.createElement('div');
 			this.leftGuide.classList.add('line-width-guide');
@@ -441,7 +475,7 @@ export default class StatusBarVaultName extends Plugin {
 
 			this.rightGuide = document.createElement('div');
 			this.rightGuide.classList.add('line-width-guide');
-			this.rightGuide.style.left = `${containerRect.left + offsetX + contentWidth}px`;
+			this.rightGuide.style.left = `${containerRect.left + offsetX + px}px`;
 
 			document.body.appendChild(this.leftGuide);
 			document.body.appendChild(this.rightGuide);
@@ -449,7 +483,7 @@ export default class StatusBarVaultName extends Plugin {
 		}
 
 		// Live preview / source mode
-		const contentEl = activeLeaf.querySelector('.cm-sizer') as HTMLElement | null;
+		const contentEl = containerEl.querySelector('.cm-sizer') as HTMLElement | null;
 		if (!contentEl) return;
 
 		const rect = contentEl.getBoundingClientRect();
