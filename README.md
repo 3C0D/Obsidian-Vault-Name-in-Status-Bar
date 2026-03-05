@@ -33,13 +33,17 @@ Disabling "Enable Line Width Control" in settings hides all icons and restores t
 
 ## Settings
 
+**Vault Name**
 - **Enable vault name**: Show/hide the vault name
 - **Vault Name Color**: Color of the vault name
 - **Font Size**: Font size of the vault name (in em)
 - **Enable Maximum Length**: Truncate the vault name if too long
 - **Maximum Length**: Max characters to display
+
+**Editor Line Width**
 - **Enable Line Width Control**: Show/hide the width control icons
 - **Line Width Color**: Color of the `<->` icon
+- **Restore cursor on popup close**: When enabled, closing the popup restores the cursor position and selection to where it was when the popup was opened
 
 ## Installation
 

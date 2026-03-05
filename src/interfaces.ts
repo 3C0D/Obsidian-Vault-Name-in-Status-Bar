@@ -9,6 +9,7 @@ export interface SBVNSettings {
     lineWidthPx: number;
     lineWidthColor: string;
     localWidths: Record<string, number>; // { "path/to/file.md": 800 }
+    restoreCursorOnClose: boolean;
 }
 
 
