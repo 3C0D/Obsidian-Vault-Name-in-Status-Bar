@@ -1,4 +1,4 @@
-import { Plugin, WorkspaceLeaf } from "obsidian";
+import { Plugin, WorkspaceLeaf, debounce } from "obsidian";
 import { Settings } from "./settings.ts";
 import { vaultsMenu } from "./menu.ts";
 import { chevronsVertical, chevronsHorizontal, lockOpen, lockClosed, lockBadge, DEFAULT_SETTINGS } from "./variables.ts";
@@ -11,7 +11,9 @@ export default class StatusBarVaultName extends Plugin {
 	leftGuide: HTMLDivElement | null = null;
 	rightGuide: HTMLDivElement | null = null;
 	guideTimeout: number = 0;
-	debounceTimer: number = 0;
+	saveDebounced = debounce(async () => {
+		await this.saveData(this.settings);
+	}, 500, true);
 	resizeObserver: ResizeObserver | null = null;
 
 	// Tracks open popups: one per leaf (keyed by leaf id)
@@ -72,7 +74,6 @@ export default class StatusBarVaultName extends Plugin {
 		this.hideWidthGuides();
 
 		if (this.guideTimeout) window.clearTimeout(this.guideTimeout);
-		if (this.debounceTimer) window.clearTimeout(this.debounceTimer);
 		this.cleanupResizeObserver();
 	}
 
@@ -337,7 +338,7 @@ export default class StatusBarVaultName extends Plugin {
 		});
 
 		// When slider changes, update widths based on lock state
-		slider.addEventListener('input', async () => {
+		slider.addEventListener('input', () => {
 			const value = parseInt(slider.value);
 			label.textContent = `${value}px`;
 
@@ -345,21 +346,17 @@ export default class StatusBarVaultName extends Plugin {
 				// Local mode: apply only to this leaf
 				if (filePath) this.settings.localWidths[filePath] = value;
 				this.applyWidthToLeaf(leaf, value);
-				if (this.debounceTimer) window.clearTimeout(this.debounceTimer);
-				this.debounceTimer = window.setTimeout(async () => {
-					await this.saveData(this.settings);
-				}, 500);
 			} else {
 				// Global mode: apply to all non-locked leaves
 				this.settings.lineWidthPx = value;
 				this.applyLineWidth();
-				await this.saveData(this.settings);
 			}
+			this.saveDebounced();
 
 			this.refreshLeafIcon(leaf);
 
 			// Restore focus
-			this.app.workspace.setActiveLeaf(leaf, { focus: true });
+			// this.app.workspace.setActiveLeaf(leaf, { focus: true });
 
 			requestAnimationFrame(() => this.showWidthGuidesForLeaf(leaf));
 			if (this.guideTimeout) window.clearTimeout(this.guideTimeout);
