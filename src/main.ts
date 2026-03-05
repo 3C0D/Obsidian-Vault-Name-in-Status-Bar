@@ -1,4 +1,4 @@
-import { Plugin, WorkspaceLeaf, debounce } from "obsidian";
+import { MarkdownView, Plugin, WorkspaceLeaf, debounce } from "obsidian";
 import { Settings } from "./settings.ts";
 import { vaultsMenu } from "./menu.ts";
 import { chevronsVertical, chevronsHorizontal, lockOpen, lockClosed, lockBadge, DEFAULT_SETTINGS } from "./variables.ts";
@@ -11,6 +11,8 @@ export default class StatusBarVaultName extends Plugin {
 	leftGuide: HTMLDivElement | null = null;
 	rightGuide: HTMLDivElement | null = null;
 	guideTimeout: number = 0;
+	savedCursor: { from: { ch: number; line: number }; to: { ch: number; line: number } } | null = null;
+	savedCursorLeaf: WorkspaceLeaf | null = null;
 	saveDebounced = debounce(async () => {
 		await this.saveData(this.settings);
 	}, 500, true);
@@ -87,6 +89,12 @@ export default class StatusBarVaultName extends Plugin {
 			) {
 				popup.remove();
 				this.activePopups.delete(leafId);
+				// Restore cursor only if click is from the same document as the saved leaf
+				const clickDoc = (e.target as Node).ownerDocument;
+				const leafDoc = this.savedCursorLeaf?.containerEl.ownerDocument;
+				if (clickDoc === leafDoc) {
+					this.restoreCursor();
+				}
 			}
 		});
 	}
@@ -263,12 +271,24 @@ export default class StatusBarVaultName extends Plugin {
 
 	// ---------------------------- Popup per leaf ----------------------------
 
+	restoreCursor(): void {
+		if (!this.settings.restoreCursorOnClose) return;
+		if (this.savedCursor && this.savedCursorLeaf) {
+			this.app.workspace.setActiveLeaf(this.savedCursorLeaf, { focus: true });
+			const view = this.savedCursorLeaf.view instanceof MarkdownView ? this.savedCursorLeaf.view : null;
+			view?.editor?.setSelection(this.savedCursor.from, this.savedCursor.to);
+			this.savedCursor = null;
+			this.savedCursorLeaf = null;
+		}
+	}
+
 	togglePopupForLeaf(leaf: WorkspaceLeaf, iconEl: HTMLDivElement): void {
 		const leafId = this.getLeafId(leaf);
 		const existing = this.activePopups.get(leafId);
 		if (existing) {
 			existing.remove();
 			this.activePopups.delete(leafId);
+			this.restoreCursor();
 		} else {
 			this.showPopupForLeaf(leaf, iconEl);
 		}
@@ -276,6 +296,17 @@ export default class StatusBarVaultName extends Plugin {
 
 	showPopupForLeaf(leaf: WorkspaceLeaf, iconEl: HTMLDivElement): void {
 		const leafId = this.getLeafId(leaf);
+
+		// Save cursor position
+		const view = leaf.view instanceof MarkdownView ? leaf.view : null;
+		const editor = view?.editor;
+		if (editor) {
+			this.savedCursor = {
+				from: editor.getCursor("anchor"),
+				to: editor.getCursor("head")
+			};
+			this.savedCursorLeaf = leaf;
+		}
 
 		// Close any other open popup
 		this.activePopups.forEach((popup, id) => {
@@ -354,9 +385,6 @@ export default class StatusBarVaultName extends Plugin {
 			this.saveDebounced();
 
 			this.refreshLeafIcon(leaf);
-
-			// Restore focus
-			// this.app.workspace.setActiveLeaf(leaf, { focus: true });
 
 			requestAnimationFrame(() => this.showWidthGuidesForLeaf(leaf));
 			if (this.guideTimeout) window.clearTimeout(this.guideTimeout);

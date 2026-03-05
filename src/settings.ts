@@ -13,6 +13,8 @@ export class Settings extends PluginSettingTab {
         const { containerEl } = this;
         containerEl.empty();
 
+        containerEl.createEl('h3', { text: 'Vault Name' });
+
         new Setting(containerEl)
             .setName("Enable vault name")
             .setDesc("Show the vault Name in the status bar (vault list in submenu)")
@@ -72,6 +74,8 @@ export class Settings extends PluginSettingTab {
                 })
             );
 
+        containerEl.createEl('h3', { text: 'Editor Line Width' });
+
         new Setting(containerEl)
             .setName("Enable Line Width Control")
             .setDesc("Show a control in the status bar to adjust the editor line width")
@@ -90,6 +94,17 @@ export class Settings extends PluginSettingTab {
                 .setValue(this.plugin.settings.lineWidthColor)
                 .onChange(async (value) => {
                     this.plugin.settings.lineWidthColor = value;
+                    await this.plugin.saveSettings();
+                })
+            );
+
+        new Setting(containerEl)
+            .setName("Restore cursor on popup close")
+            .setDesc("Restore cursor position and selection when closing the line width popup")
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.restoreCursorOnClose)
+                .onChange(async (value) => {
+                    this.plugin.settings.restoreCursorOnClose = value;
                     await this.plugin.saveSettings();
                 })
             );
