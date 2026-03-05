@@ -27,7 +27,7 @@ export default class StatusBarVaultName extends Plugin {
 		const vaultName = this.app.vault.getName();
 		const statusBar = document.querySelector('.status-bar');
 
-		// Vault name (unchanged)
+		// Vault name
 		this.vaultNameEl = document.createElement('div');
 		this.vaultNameEl.innerHTML = this.settings.reducedAtStart ? `${chevronsVertical}` : `${chevronsVertical} ${this.getTruncatedVaultName(vaultName)}`;
 		this.vaultNameEl.classList.add("status-bar-vault-name");
@@ -41,7 +41,7 @@ export default class StatusBarVaultName extends Plugin {
 		document.head.appendChild(this.lineWidthStyleEl);
 		this.applyLineWidth();
 
-		this.vaultNameEl.addEventListener('click', (e) => vaultsMenu(this, this.app, e));
+		this.registerDomEvent(this.vaultNameEl, 'click', (e) => vaultsMenu(this, this.app, e));
 
 		// Inject icons into all existing leaves, then watch for new ones
 		this.registerEvent(
@@ -55,7 +55,7 @@ export default class StatusBarVaultName extends Plugin {
 		this.registerDomEvent(document, 'click', this.onDocumentClick.bind(this));
 
 		// Initial injection
-		requestAnimationFrame(() => {
+		this.app.workspace.onLayoutReady(() => {
 			this.injectAllLeafIcons();
 		});
 	}
