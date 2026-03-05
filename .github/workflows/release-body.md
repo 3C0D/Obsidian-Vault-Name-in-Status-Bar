@@ -1,1 +1,1 @@
-Per-tab editor line width control with local/global lock system
+Cursor position restore on popup close, settings sections
