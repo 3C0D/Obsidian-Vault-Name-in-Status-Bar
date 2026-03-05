@@ -31,10 +31,27 @@
     min-width: 180px;
 }
 
+.line-width-slider-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
 .line-width-slider-label {
     font-size: var(--font-ui-small);
     color: var(--text-normal);
     font-weight: 500;
+}
+
+.line-width-lock-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px;
+    display: flex;
+    align-items: center;
+    transition: color 0.2s;
 }
 
 .line-width-slider {
@@ -56,4 +73,23 @@
 
 .line-width-guide-fade {
     opacity: 0;
+}
+
+.lw-leaf-icon {
+    position: relative;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    padding: 0 4px;
+    color: var(--icon-color);
+}
+
+.lw-lock-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 10px;
+    height: 10px;
+    color: var(--interactive-accent);
+    pointer-events: none;
 }
