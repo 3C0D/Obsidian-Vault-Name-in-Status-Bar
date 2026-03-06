@@ -1,1 +1,1 @@
-Cursor position restore on popup close, settings sections
+general refactoring and fixes (guides...)
