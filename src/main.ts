@@ -5,6 +5,7 @@ import { chevronsVertical, chevronsHorizontal, lockOpen, lockClosed, lockBadge, 
 import type { SBVNSettings } from "./interfaces.ts";
 import { WidthGuides } from "./guides.ts";
 import { getLeafId, getFilePathForLeaf, getWidthForLeafPath, isFileLocked, getTooltipForLeaf } from "./leaf-utils.ts";
+import { WidthManager } from "./width-manager.ts";
 
 export default class StatusBarVaultName extends Plugin {
 	settings: SBVNSettings;
@@ -13,10 +14,10 @@ export default class StatusBarVaultName extends Plugin {
 	savedCursor: { from: { ch: number; line: number }; to: { ch: number; line: number } } | null = null;
 	savedCursorLeaf: WorkspaceLeaf | null = null;
 	guides: WidthGuides;
+	widthManager: WidthManager;
 	saveDebounced = debounce(async () => {
 		await this.saveData(this.settings);
 	}, 500, true);
-	resizeObserver: ResizeObserver | null = null;
 
 	// Tracks open popups: one per leaf (keyed by leaf id)
 	activePopups: Map<string, HTMLDivElement> = new Map();
@@ -43,14 +44,22 @@ export default class StatusBarVaultName extends Plugin {
 		// Global CSS style element
 		this.lineWidthStyleEl = document.createElement('style');
 		document.head.appendChild(this.lineWidthStyleEl);
-		this.applyLineWidth();
+
+		// Initialize WidthManager
+		this.widthManager = new WidthManager(
+			() => this.settings,
+			this.lineWidthStyleEl,
+			(cb) => this.app.workspace.iterateAllLeaves(cb)
+		);
+
+		this.widthManager.applyLineWidth();
 
 		this.registerDomEvent(this.vaultNameEl, 'click', (e) => vaultsMenu(this, this.app, e));
 
 		// Inject icons into all existing leaves, then watch for new ones
 		this.registerEvent(
 			this.app.workspace.on('layout-change', () => {
-				this.updateEditorWidths();
+				this.widthManager.updateEditorWidths();
 				this.injectAllLeafIcons();
 			})
 		);
@@ -80,7 +89,7 @@ export default class StatusBarVaultName extends Plugin {
 		this.activePopups.forEach(popup => popup.remove());
 		this.activePopups.clear();
 		this.guides.cleanup();
-		this.cleanupResizeObserver();
+		this.widthManager.cleanupResizeObserver();
 	}
 
 	// Closes popups when clicking outside of them or their associated icons
@@ -119,7 +128,7 @@ export default class StatusBarVaultName extends Plugin {
 		this.updateVaultName();
 		this.updateVaultNameElTooltip();
 		this.updateVaultNameVisibility();
-		this.applyLineWidth();
+		this.widthManager.applyLineWidth();
 		this.injectAllLeafIcons();
 		this.updateAllLeafIconColors();
 	}
@@ -336,7 +345,7 @@ export default class StatusBarVaultName extends Plugin {
 				// Unlock: remove local override, apply global width immediately
 				delete this.settings.localWidths[filePath];
 				void this.saveData(this.settings);
-				this.applyWidthToLeaf(leaf, this.settings.lineWidthPx);
+				this.widthManager.applyWidthToLeaf(leaf, this.settings.lineWidthPx);
 			} else {
 				// Lock: store current global width as local starting point
 				this.settings.localWidths[filePath] = this.settings.lineWidthPx;
@@ -353,11 +362,11 @@ export default class StatusBarVaultName extends Plugin {
 			if (isFileLocked(filePath, this.settings)) {
 				// Local mode: apply only to this leaf
 				if (filePath) this.settings.localWidths[filePath] = value;
-				this.applyWidthToLeaf(leaf, value);
+				this.widthManager.applyWidthToLeaf(leaf, value);
 			} else {
 				// Global mode: apply to all non-locked leaves
 				this.settings.lineWidthPx = value;
-				this.applyLineWidth();
+				this.widthManager.applyLineWidth();
 			}
 			this.saveDebounced();
 
@@ -384,72 +393,5 @@ export default class StatusBarVaultName extends Plugin {
 
 		ownerDoc.body.appendChild(popup);
 		this.activePopups.set(leafId, popup);
-	}
-
-	// Applies a width directly to a specific leaf's DOM elements
-	applyWidthToLeaf(leaf: WorkspaceLeaf, px: number): void {
-		const containerEl = leaf.containerEl as HTMLElement;
-		containerEl.querySelectorAll('.cm-sizer').forEach(el => {
-			(el as HTMLElement).style.maxWidth = `${px}px`;
-		});
-		containerEl.querySelectorAll('.markdown-preview-sizer').forEach(el => {
-			(el as HTMLElement).style.maxWidth = `${px}px`;
-			(el as HTMLElement).style.width = `${px}px`;
-		});
-	}
-
-	// ---------------------------- CSS / widths ------------------------------
-
-	applyLineWidth(): void {
-		if (this.settings.enableLineWidth) {
-			this.lineWidthStyleEl.textContent =
-				`.cm-contentContainer { max-width: unset !important; }` +
-				`.cm-content { max-width: unset !important; }` +
-				`.cm-sizer { margin-left: auto !important; margin-right: auto !important; }` +
-				`.markdown-preview-view .markdown-preview-sizer { margin-left: auto !important; margin-right: auto !important; max-width: 100% !important; box-sizing: border-box !important; }` +
-				`.markdown-preview-sizer .mermaid svg { max-width: 100% !important; height: auto !important; }`;
-			this.setupResizeObserver();
-			this.updateEditorWidths();
-		} else {
-			this.lineWidthStyleEl.textContent = '';
-			this.cleanupResizeObserver();
-			this.getAllDocuments().forEach(doc => {
-				doc.querySelectorAll('.cm-sizer, .markdown-preview-sizer').forEach(el => {
-					(el as HTMLElement).style.removeProperty('max-width');
-					(el as HTMLElement).style.removeProperty('width');
-				});
-			});
-		}
-	}
-
-	setupResizeObserver(): void {
-		this.cleanupResizeObserver();
-		this.resizeObserver = new ResizeObserver(() => this.updateEditorWidths());
-		const workspaceEl = document.querySelector('.workspace');
-		if (workspaceEl) this.resizeObserver.observe(workspaceEl);
-	}
-
-	getAllDocuments(): Document[] {
-		const docs = new Set<Document>();
-		docs.add(document);
-		this.app.workspace.iterateAllLeaves(leaf => {
-			docs.add(leaf.containerEl.ownerDocument);
-		});
-		return Array.from(docs);
-	}
-
-	updateEditorWidths(): void {
-		this.app.workspace.iterateAllLeaves(leaf => {
-			const filePath = getFilePathForLeaf(leaf);
-			const px = getWidthForLeafPath(filePath, this.settings);
-			this.applyWidthToLeaf(leaf, px);
-		});
-	}
-
-	cleanupResizeObserver(): void {
-		if (this.resizeObserver) {
-			this.resizeObserver.disconnect();
-			this.resizeObserver = null;
-		}
 	}
 }
