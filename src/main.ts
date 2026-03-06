@@ -3,16 +3,15 @@ import { Settings } from "./settings.ts";
 import { vaultsMenu } from "./menu.ts";
 import { chevronsVertical, chevronsHorizontal, lockOpen, lockClosed, lockBadge, DEFAULT_SETTINGS } from "./variables.ts";
 import type { SBVNSettings } from "./interfaces.ts";
+import { WidthGuides } from "./guides.ts";
 
 export default class StatusBarVaultName extends Plugin {
 	settings: SBVNSettings;
 	vaultNameEl: HTMLDivElement;
 	lineWidthStyleEl: HTMLStyleElement;
-	leftGuide: HTMLDivElement | null = null;
-	rightGuide: HTMLDivElement | null = null;
-	guideTimeout: number = 0;
 	savedCursor: { from: { ch: number; line: number }; to: { ch: number; line: number } } | null = null;
 	savedCursorLeaf: WorkspaceLeaf | null = null;
+	guides: WidthGuides;
 	saveDebounced = debounce(async () => {
 		await this.saveData(this.settings);
 	}, 500, true);
@@ -62,6 +61,12 @@ export default class StatusBarVaultName extends Plugin {
 		this.app.workspace.onLayoutReady(() => {
 			this.injectAllLeafIcons();
 		});
+
+		// Initialize width guides
+		this.guides = new WidthGuides(
+			(filePath) => this.getWidthForLeafPath(filePath),
+			(leaf) => this.getFilePathForLeaf(leaf)
+		);
 	}
 
 	onunload(): void {
@@ -73,9 +78,7 @@ export default class StatusBarVaultName extends Plugin {
 		// Close all popups
 		this.activePopups.forEach(popup => popup.remove());
 		this.activePopups.clear();
-		this.hideWidthGuides();
-
-		if (this.guideTimeout) window.clearTimeout(this.guideTimeout);
+		this.guides.cleanup();
 		this.cleanupResizeObserver();
 	}
 
@@ -387,9 +390,8 @@ export default class StatusBarVaultName extends Plugin {
 
 			this.refreshLeafIcon(leaf);
 
-			requestAnimationFrame(() => this.showWidthGuidesForLeaf(leaf));
-			if (this.guideTimeout) window.clearTimeout(this.guideTimeout);
-			this.guideTimeout = window.setTimeout(() => this.fadeOutWidthGuides(), 2000);
+			requestAnimationFrame(() => this.guides.showWidthGuidesForLeaf(leaf));
+			this.guides.scheduleHide(2000);
 		});
 
 		headerRow.appendChild(label);
@@ -476,71 +478,5 @@ export default class StatusBarVaultName extends Plugin {
 			this.resizeObserver.disconnect();
 			this.resizeObserver = null;
 		}
-	}
-
-	// ---------------------------- Width guides ------------------------------
-
-	showWidthGuidesForLeaf(leaf: WorkspaceLeaf): void {
-		this.hideWidthGuides();
-
-		const ownerDoc = leaf.containerEl.ownerDocument;
-		const filePath = this.getFilePathForLeaf(leaf);
-		// leaf width
-		const px = this.getWidthForLeafPath(filePath);
-		const containerEl = leaf.containerEl as HTMLElement;
-
-		// Reading mode: full-width container — auto margins are on a child element, so position must be calculated manually
-		const readingContainer = containerEl.querySelector('.markdown-reading-view') as HTMLElement | null;
-		if (readingContainer && readingContainer.offsetParent !== null) {
-			const rect = readingContainer.getBoundingClientRect();
-			// Side margin (centering offset)
-			const offsetX = Math.max(0, (rect.width - px) / 2);
-
-			this.leftGuide = ownerDoc.createElement('div');
-			this.leftGuide.classList.add('line-width-guide');
-			// Going from the left edge of the container, add the offset to get to the left guide position
-			this.leftGuide.style.left = `${rect.left + offsetX}px`;
-
-			this.rightGuide = ownerDoc.createElement('div');
-			this.rightGuide.classList.add('line-width-guide');
-			// Going from the left edge of the container, add leaf width and offset to get to the right guide position
-			this.rightGuide.style.left = `${rect.left + px + offsetX}px`;
-
-			ownerDoc.body.appendChild(this.leftGuide);
-			ownerDoc.body.appendChild(this.rightGuide);
-			return;
-		}
-
-		// Live preview / source mode: cm-sizer has auto margins, so its edges are already the text edges
-		const contentEl = containerEl.querySelector('.cm-sizer') as HTMLElement | null;
-		if (!contentEl) return;
-
-		const rect = contentEl.getBoundingClientRect();
-
-		this.leftGuide = ownerDoc.createElement('div');
-		this.leftGuide.classList.add('line-width-guide');
-		// Left edge of the content. Simple because cm-sizer is already centered with auto margins
-		this.leftGuide.style.left = `${rect.left}px`;
-
-		this.rightGuide = ownerDoc.createElement('div');
-		this.rightGuide.classList.add('line-width-guide');
-		// Right edge of the content
-		this.rightGuide.style.left = `${rect.right}px`;
-
-		ownerDoc.body.appendChild(this.leftGuide);
-		ownerDoc.body.appendChild(this.rightGuide);
-	}
-
-	hideWidthGuides(): void {
-		this.leftGuide?.remove();
-		this.rightGuide?.remove();
-		this.leftGuide = null;
-		this.rightGuide = null;
-	}
-
-	fadeOutWidthGuides(): void {
-		if (this.leftGuide) this.leftGuide.classList.add('line-width-guide-fade');
-		if (this.rightGuide) this.rightGuide.classList.add('line-width-guide-fade');
-		window.setTimeout(() => this.hideWidthGuides(), 500);
 	}
 }
