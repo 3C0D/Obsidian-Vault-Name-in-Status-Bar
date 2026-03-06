@@ -29,6 +29,7 @@ export class LeafIconManager {
 		const activeLeafIds = new Set<string>();
 
 		this.iterateAllLeaves(leaf => {
+			const settings = this.getSettings();
 			activeLeafIds.add(getLeafId(leaf));
 			const viewType = leaf.view?.getViewType();
 			if (viewType !== 'markdown') return;
@@ -38,7 +39,7 @@ export class LeafIconManager {
 
 			const existing = this.leafIcons.get(leafId);
 			if (existing && existing.isConnected) {
-				existing.style.display = this.getSettings().enableLineWidth ? 'flex' : 'none';
+				existing.style.display = settings.enableLineWidth ? 'flex' : 'none';
 				this.refresh(leaf);
 				return;
 			}
@@ -55,13 +56,13 @@ export class LeafIconManager {
 			const iconEl = ownerDoc.createElement('div');
 			iconEl.classList.add('lw-leaf-icon');
 			iconEl.innerHTML = `<span class="lw-icon">${chevronsHorizontal}</span>`;
-			iconEl.setAttribute('aria-label', getTooltipForLeaf(leaf, this.getSettings()));
+			iconEl.setAttribute('aria-label', getTooltipForLeaf(leaf, settings));
 
 			actionsEl.prepend(iconEl);
 			this.leafIcons.set(leafId, iconEl);
 
-			iconEl.style.color = this.getSettings().lineWidthColor;
-			iconEl.style.display = this.getSettings().enableLineWidth ? 'flex' : 'none';
+			iconEl.style.color = settings.lineWidthColor;
+			iconEl.style.display = settings.enableLineWidth ? 'flex' : 'none';
 
 			this.refresh(leaf);
 
@@ -88,8 +89,9 @@ export class LeafIconManager {
 		const iconEl = this.leafIcons.get(leafId);
 		if (!iconEl) return;
 
+		const settings = this.getSettings();
 		const filePath = getFilePathForLeaf(leaf);
-		const locked = isFileLocked(filePath, this.getSettings());
+		const locked = isFileLocked(filePath, settings);
 
 		const existingBadge = iconEl.querySelector('.lw-lock-badge');
 		if (locked && !existingBadge) {
@@ -101,11 +103,16 @@ export class LeafIconManager {
 			existingBadge.remove();
 		}
 
-		iconEl.setAttribute('aria-label', getTooltipForLeaf(leaf, this.getSettings()));
+		iconEl.setAttribute('aria-label', getTooltipForLeaf(leaf, settings));
 	}
 
 	cleanup(): void {
 		this.leafIcons.forEach(el => el.remove());
 		this.leafIcons.clear();
+	}
+
+	refreshAll(): void {
+		this.injectAll();
+		this.updateAllColors();
 	}
 }

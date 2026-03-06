@@ -67,7 +67,6 @@ export class PopupManager {
 
 	showPopupForLeaf(leaf: WorkspaceLeaf, iconEl: HTMLDivElement): void {
 		const leafId = getLeafId(leaf);
-		const settings = this.getSettings();
 
 		// Save cursor position
 		const view = leaf.view instanceof MarkdownView ? leaf.view : null;
@@ -107,10 +106,11 @@ export class PopupManager {
 		slider.classList.add('line-width-slider');
 
 		const updateLockState = (): void => {
-			const width = getWidthForLeafPath(filePath, this.getSettings());
+			const settings = this.getSettings();
+			const width = getWidthForLeafPath(filePath, settings);
 			label.textContent = `${width}px`;
 			slider.value = `${width}`;
-			if (isFileLocked(filePath, this.getSettings())) {
+			if (isFileLocked(filePath, settings)) {
 				lockBtn.innerHTML = lockClosed;
 				lockBtn.style.color = 'var(--interactive-accent)';
 				lockBtn.setAttribute('aria-label', 'Local width (this file only)');

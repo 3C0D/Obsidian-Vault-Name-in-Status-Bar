@@ -119,7 +119,6 @@ export default class StatusBarVaultName extends Plugin {
 		this.vaultName.updateTooltip();
 		this.vaultName.updateVisibility();
 		this.widthManager.applyLineWidth();
-		this.leafIconManager.injectAll();
-		this.leafIconManager.updateAllColors();
+		this.leafIconManager.refreshAll();
 	}
 }
