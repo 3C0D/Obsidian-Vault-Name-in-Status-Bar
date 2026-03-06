@@ -65,6 +65,7 @@ export default class StatusBarVaultName extends Plugin {
 
 		// Initialize PopupManager
 		this.popupManager = new PopupManager(
+			this.app,
 			() => this.settings,
 			(data) => this.saveData(data),
 			this.saveDebounced,
@@ -73,7 +74,6 @@ export default class StatusBarVaultName extends Plugin {
 			(leaf) => this.leafIconManager.refresh(leaf),
 			(leaf, opts) => this.app.workspace.setActiveLeaf(leaf, opts)
 		);
-		this.popupManager.setApp(this.app);
 
 		// Link PopupManager to LeafIconManager
 		this.leafIconManager.setPopupManager(this.popupManager);

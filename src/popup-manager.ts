@@ -1,4 +1,4 @@
-import { MarkdownView, WorkspaceLeaf, setIcon } from "obsidian";
+import { App, MarkdownView, WorkspaceLeaf, setIcon } from "obsidian";
 import type { SBVNSettings } from "./interfaces.ts";
 import type { EditorPosition } from "obsidian";
 import { getLeafId, getFilePathForLeaf, getWidthForLeafPath, isFileLocked } from "./leaf-utils.ts";
@@ -15,6 +15,7 @@ export class PopupManager {
 	private savedCursors: Map<string, CursorState> = new Map();
 
 	constructor(
+		private app: App,
 		private getSettings: () => SBVNSettings,
 		private saveData: (data: SBVNSettings) => Promise<void>,
 		private saveDebounced: () => void,
@@ -62,14 +63,11 @@ export class PopupManager {
 
 	private findLeafById(leafId: string): WorkspaceLeaf | null {
 		let found: WorkspaceLeaf | null = null;
-		this.app?.workspace.iterateAllLeaves((leaf: WorkspaceLeaf) => {
+		this.app.workspace.iterateAllLeaves((leaf: WorkspaceLeaf) => {
 			if (getLeafId(leaf) === leafId) found = leaf;
 		});
 		return found;
 	}
-
-	private app: any = null;
-	setApp(app: any): void { this.app = app; }
 
 	private toggleLock(leaf: WorkspaceLeaf, filePath: string | null, updateLockState: () => void): void {
 		if (!filePath) return;
