@@ -17,6 +17,7 @@ export class WidthGuides {
 		const filePath = this.getFilePathForLeaf(leaf);
 		const px = this.getWidthForLeafPath(filePath);
 		const containerEl = leaf.containerEl as HTMLElement;
+		const containerRect = containerEl.getBoundingClientRect();
 
 		// Reading mode: full-width container — auto margins are on a child element, so position must be calculated manually
 		const readingContainer = containerEl.querySelector('.markdown-reading-view') as HTMLElement | null;
@@ -30,11 +31,15 @@ export class WidthGuides {
 			this.leftGuide.classList.add('line-width-guide');
 			// Going from the left edge of the container, add the offset to get to the left guide position
 			this.leftGuide.style.left = `${rect.left + offsetX}px`;
+			this.leftGuide.style.top = `${containerRect.top}px`;
+			this.leftGuide.style.height = `${containerRect.height}px`;
 
 			this.rightGuide = ownerDoc.createElement('div');
 			this.rightGuide.classList.add('line-width-guide');
 			// Going from the left edge of the container, add leaf width and offset to get to the right guide position
 			this.rightGuide.style.left = `${rect.left + px + offsetX}px`;
+			this.rightGuide.style.top = `${containerRect.top}px`;
+			this.rightGuide.style.height = `${containerRect.height}px`;
 
 			ownerDoc.body.appendChild(this.leftGuide);
 			ownerDoc.body.appendChild(this.rightGuide);
@@ -53,11 +58,15 @@ export class WidthGuides {
 		this.leftGuide.classList.add('line-width-guide');
 		// Left edge of the content. Simple because cm-sizer is already centered with auto margins
 		this.leftGuide.style.left = `${rect.left}px`;
+		this.leftGuide.style.top = `${containerRect.top}px`;
+		this.leftGuide.style.height = `${containerRect.height}px`;
 
 		this.rightGuide = ownerDoc.createElement('div');
 		this.rightGuide.classList.add('line-width-guide');
 		// Right edge of the content
 		this.rightGuide.style.left = `${rect.right}px`;
+		this.rightGuide.style.top = `${containerRect.top}px`;
+		this.rightGuide.style.height = `${containerRect.height}px`;
 
 		ownerDoc.body.appendChild(this.leftGuide);
 		ownerDoc.body.appendChild(this.rightGuide);

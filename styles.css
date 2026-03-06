@@ -61,8 +61,6 @@
 
 .line-width-guide {
     position: fixed;
-    top: 0;
-    bottom: 0;
     width: 2px;
     background: var(--interactive-accent);
     opacity: 0.5;
