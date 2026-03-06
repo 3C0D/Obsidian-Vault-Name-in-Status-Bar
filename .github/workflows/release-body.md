@@ -1,1 +1,1 @@
-guide height
+fix: guides below sizing popup
