@@ -1,15 +1,16 @@
 import { MarkdownView, Plugin, WorkspaceLeaf, debounce } from "obsidian";
 import { Settings } from "./settings.ts";
 import { vaultsMenu } from "./menu.ts";
-import { chevronsVertical, chevronsHorizontal, lockOpen, lockClosed, lockBadge, DEFAULT_SETTINGS } from "./variables.ts";
+import { chevronsHorizontal, lockOpen, lockClosed, lockBadge, DEFAULT_SETTINGS } from "./variables.ts";
 import type { SBVNSettings } from "./interfaces.ts";
 import { WidthGuides } from "./guides.ts";
 import { getLeafId, getFilePathForLeaf, getWidthForLeafPath, isFileLocked, getTooltipForLeaf } from "./leaf-utils.ts";
 import { WidthManager } from "./width-manager.ts";
+import { VaultName } from "./vault-name.ts";
 
 export default class StatusBarVaultName extends Plugin {
 	settings: SBVNSettings;
-	vaultNameEl: HTMLDivElement;
+	vaultName: VaultName;
 	lineWidthStyleEl: HTMLStyleElement;
 	savedCursor: { from: { ch: number; line: number }; to: { ch: number; line: number } } | null = null;
 	savedCursorLeaf: WorkspaceLeaf | null = null;
@@ -29,17 +30,17 @@ export default class StatusBarVaultName extends Plugin {
 	async onload(): Promise<void> {
 		await this.loadSettings();
 		this.addSettingTab(new Settings(this.app, this));
-		const vaultName = this.app.vault.getName();
 		const statusBar = document.querySelector('.status-bar');
 
-		// Vault name
-		this.vaultNameEl = document.createElement('div');
-		this.vaultNameEl.innerHTML = this.settings.reducedAtStart ? `${chevronsVertical}` : `${chevronsVertical} ${this.getTruncatedVaultName(vaultName)}`;
-		this.vaultNameEl.classList.add("status-bar-vault-name");
-		this.updateVaultNameElTooltip();
-		statusBar?.prepend(this.vaultNameEl);
-		this.updateVaultNameElStyle();
-		this.updateVaultNameVisibility();
+		// Initialize VaultName
+		this.vaultName = new VaultName(
+			() => this.settings,
+			() => this.app.vault.getName()
+		);
+		this.vaultName.init(statusBar);
+
+		// Register click event on vault name element
+		this.registerDomEvent(this.vaultName.getEl(), 'click', (e) => vaultsMenu(this, this.app, e));
 
 		// Global CSS style element
 		this.lineWidthStyleEl = document.createElement('style');
@@ -53,8 +54,6 @@ export default class StatusBarVaultName extends Plugin {
 		);
 
 		this.widthManager.applyLineWidth();
-
-		this.registerDomEvent(this.vaultNameEl, 'click', (e) => vaultsMenu(this, this.app, e));
 
 		// Inject icons into all existing leaves, then watch for new ones
 		this.registerEvent(
@@ -80,7 +79,7 @@ export default class StatusBarVaultName extends Plugin {
 	}
 
 	onunload(): void {
-		this.vaultNameEl.detach();
+		this.vaultName.getEl().detach();
 		this.lineWidthStyleEl.remove();
 		// Remove all injected icons
 		this.leafIcons.forEach(el => el.remove());
@@ -124,40 +123,13 @@ export default class StatusBarVaultName extends Plugin {
 
 	async saveSettings(): Promise<void> {
 		await this.saveData(this.settings);
-		this.updateVaultNameElStyle();
-		this.updateVaultName();
-		this.updateVaultNameElTooltip();
-		this.updateVaultNameVisibility();
+		this.vaultName.updateStyle();
+		this.vaultName.updateName();
+		this.vaultName.updateTooltip();
+		this.vaultName.updateVisibility();
 		this.widthManager.applyLineWidth();
 		this.injectAllLeafIcons();
 		this.updateAllLeafIconColors();
-	}
-
-	// ---------------------------- Vault name --------------------------------
-
-	updateVaultNameElStyle(): void {
-		this.vaultNameEl.style.color = this.settings.color;
-		this.vaultNameEl.style.fontSize = `${this.settings.fontSize}em`;
-	}
-
-	updateVaultName(): void {
-		const vaultName = this.app.vault.getName();
-		this.vaultNameEl.innerHTML = this.settings.reducedAtStart ? `${chevronsVertical}` : `${chevronsVertical} ${this.getTruncatedVaultName(vaultName)}`;
-	}
-
-	updateVaultNameElTooltip(): void {
-		this.vaultNameEl.setAttribute('aria-label', "vault name");
-	}
-
-	updateVaultNameVisibility(): void {
-		this.vaultNameEl.style.display = this.settings.enableVaultName ? 'flex' : 'none';
-	}
-
-	getTruncatedVaultName(name: string): string {
-		if (this.settings.enableMaxLength && name.length > this.settings.maxVaultNameLength) {
-			return name.slice(0, this.settings.maxVaultNameLength) + '...';
-		}
-		return name;
 	}
 
 	updateAllLeafIconColors(): void {
