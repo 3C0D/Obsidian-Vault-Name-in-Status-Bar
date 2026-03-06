@@ -1,15 +1,18 @@
-import { WorkspaceLeaf } from "obsidian";
+import { WorkspaceLeaf, debounce } from "obsidian";
 import type { SBVNSettings } from "./interfaces.ts";
 import { getFilePathForLeaf, getWidthForLeafPath } from "./leaf-utils.ts";
 
 export class WidthManager {
 	private resizeObserver: ResizeObserver | null = null;
+	private updateEditorWidthsDebounced: () => void;
 
 	constructor(
 		private getSettings: () => SBVNSettings,
 		private lineWidthStyleEl: HTMLStyleElement,
 		private iterateAllLeaves: (cb: (leaf: WorkspaceLeaf) => void) => void
-	) {}
+	) {
+		this.updateEditorWidthsDebounced = debounce(() => this.updateEditorWidths(), 100, false);
+	}
 
 	// Applies a width directly to a specific leaf's DOM elements
 	applyWidthToLeaf(leaf: WorkspaceLeaf, px: number): void {
@@ -50,9 +53,13 @@ export class WidthManager {
 
 	setupResizeObserver(): void {
 		this.cleanupResizeObserver();
-		this.resizeObserver = new ResizeObserver(() => this.updateEditorWidths());
+		this.resizeObserver = new ResizeObserver(() => this.updateEditorWidthsDebounced());
 		const workspaceEl = document.querySelector('.workspace');
-		if (workspaceEl) this.resizeObserver.observe(workspaceEl);
+		if (workspaceEl) {
+			this.resizeObserver.observe(workspaceEl);
+		} else {
+			console.warn('Workspace element not found for ResizeObserver');
+		}
 	}
 
 	getAllDocuments(): Document[] {

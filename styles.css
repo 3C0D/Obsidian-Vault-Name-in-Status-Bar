@@ -84,6 +84,10 @@
     color: var(--icon-color);
 }
 
+.lw-icon {
+    margin-top: 4px;
+}
+
 .lw-lock-badge {
     position: absolute;
     top: -4px;

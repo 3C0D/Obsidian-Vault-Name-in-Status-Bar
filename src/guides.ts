@@ -3,7 +3,7 @@ import { WorkspaceLeaf } from "obsidian";
 export class WidthGuides {
 	leftGuide: HTMLDivElement | null = null;
 	rightGuide: HTMLDivElement | null = null;
-	guideTimeout: number = 0;
+	guideTimeout: ReturnType<typeof setTimeout> | null = null;
 
 	constructor(
 		private getWidthForLeafPath: (filePath: string | null) => number,
@@ -15,14 +15,15 @@ export class WidthGuides {
 
 		const ownerDoc = leaf.containerEl.ownerDocument;
 		const filePath = this.getFilePathForLeaf(leaf);
-		// leaf width
 		const px = this.getWidthForLeafPath(filePath);
 		const containerEl = leaf.containerEl as HTMLElement;
 
 		// Reading mode: full-width container — auto margins are on a child element, so position must be calculated manually
 		const readingContainer = containerEl.querySelector('.markdown-reading-view') as HTMLElement | null;
-		if (readingContainer && readingContainer.offsetParent !== null) {
+		if (readingContainer) {
+			if (readingContainer.offsetParent === null) return;
 			const rect = readingContainer.getBoundingClientRect();
+			if (rect.width === 0) return;
 			// Side margin (centering offset)
 			const offsetX = Math.max(0, (rect.width - px) / 2);
 
@@ -44,8 +45,10 @@ export class WidthGuides {
 		// Live preview / source mode: cm-sizer has auto margins, so its edges are already the text edges
 		const contentEl = containerEl.querySelector('.cm-sizer') as HTMLElement | null;
 		if (!contentEl) return;
+		if (contentEl.offsetParent === null) return;
 
 		const rect = contentEl.getBoundingClientRect();
+		if (rect.width === 0) return;
 
 		this.leftGuide = ownerDoc.createElement('div');
 		this.leftGuide.classList.add('line-width-guide');
@@ -71,16 +74,16 @@ export class WidthGuides {
 	fadeOutWidthGuides(): void {
 		if (this.leftGuide) this.leftGuide.classList.add('line-width-guide-fade');
 		if (this.rightGuide) this.rightGuide.classList.add('line-width-guide-fade');
-		window.setTimeout(() => this.hideWidthGuides(), 500);
+		setTimeout(() => this.hideWidthGuides(), 500);
 	}
 
 	scheduleHide(delay: number): void {
-		if (this.guideTimeout) window.clearTimeout(this.guideTimeout);
-		this.guideTimeout = window.setTimeout(() => this.fadeOutWidthGuides(), delay);
+		if (this.guideTimeout) clearTimeout(this.guideTimeout);
+		this.guideTimeout = setTimeout(() => this.fadeOutWidthGuides(), delay);
 	}
 
 	cleanup(): void {
 		this.hideWidthGuides();
-		if (this.guideTimeout) window.clearTimeout(this.guideTimeout);
+		if (this.guideTimeout) clearTimeout(this.guideTimeout);
 	}
 }

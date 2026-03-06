@@ -1,19 +1,24 @@
-import { Plugin, WorkspaceLeaf } from "obsidian";
+import { Plugin, WorkspaceLeaf, setIcon } from "obsidian";
 import type { SBVNSettings } from "./interfaces.ts";
-import { chevronsHorizontal, lockBadge } from "./variables.ts";
 import { getLeafId, getFilePathForLeaf, isFileLocked, getTooltipForLeaf } from "./leaf-utils.ts";
 import { PopupManager } from "./popup-manager.ts";
+import { createLockBadgeSVG } from "./svg-utils.ts";
 
 export class LeafIconManager {
 	private leafIcons: Map<string, HTMLDivElement> = new Map();
 	private registeredDocs: Set<Document> = new Set();
+	private popupManager: PopupManager | null = null;
+	private iconClickHandlers: Map<string, (e: MouseEvent) => void> = new Map();
 
 	constructor(
 		private getSettings: () => SBVNSettings,
 		private iterateAllLeaves: (cb: (leaf: WorkspaceLeaf) => void) => void,
-		private registerDomEvent: Plugin["registerDomEvent"],
-		private popupManager: PopupManager
+		private registerDomEvent: Plugin["registerDomEvent"]
 	) {}
+
+	setPopupManager(popupManager: PopupManager): void {
+		this.popupManager = popupManager;
+	}
 
 	getLeafIcons(): Map<string, HTMLDivElement> {
 		return this.leafIcons;
@@ -44,18 +49,25 @@ export class LeafIconManager {
 				return;
 			}
 
-			const actionsEl = (leaf.view as any).actionsEl as HTMLElement | undefined;
+			interface ViewWithActions {
+				actionsEl?: HTMLElement;
+			}
+			const viewWithActions = leaf.view as unknown as ViewWithActions;
+			const actionsEl = viewWithActions.actionsEl;
 			if (!actionsEl) return;
 
 			const ownerDoc = actionsEl.ownerDocument;
-			if (!this.registeredDocs.has(ownerDoc)) {
+			if (!this.registeredDocs.has(ownerDoc) && this.popupManager) {
 				this.registeredDocs.add(ownerDoc);
-				this.registerDomEvent(ownerDoc, 'click', (e) => this.popupManager.onDocumentClick(e, this.leafIcons));
+				this.registerDomEvent(ownerDoc, 'click', (e) => this.popupManager!.onDocumentClick(e, this.leafIcons));
 			}
 
 			const iconEl = ownerDoc.createElement('div');
 			iconEl.classList.add('lw-leaf-icon');
-			iconEl.innerHTML = `<span class="lw-icon">${chevronsHorizontal}</span>`;
+			const iconSpan = ownerDoc.createElement('span');
+			iconSpan.classList.add('lw-icon');
+			setIcon(iconSpan, 'chevrons-left-right-ellipsis');
+			iconEl.appendChild(iconSpan);
 			iconEl.setAttribute('aria-label', getTooltipForLeaf(leaf, settings));
 
 			actionsEl.prepend(iconEl);
@@ -66,17 +78,34 @@ export class LeafIconManager {
 
 			this.refresh(leaf);
 
-			iconEl.addEventListener('click', (e) => {
+			const clickHandler = (e: MouseEvent): void => {
 				e.stopPropagation();
-				this.popupManager.togglePopupForLeaf(leaf, iconEl);
-			});
+				if (this.popupManager) {
+					this.popupManager.togglePopupForLeaf(leaf, iconEl);
+				}
+			};
+			iconEl.addEventListener('click', clickHandler);
+			this.iconClickHandlers.set(leafId, clickHandler);
 		});
 
 		// Clean up icons for leaves that no longer exist
+		const toDelete: string[] = [];
 		this.leafIcons.forEach((el, id) => {
 			if (!activeLeafIds.has(id)) {
-				el.remove();
-				this.leafIcons.delete(id);
+				toDelete.push(id);
+			}
+		});
+		
+		toDelete.forEach(id => {
+			const el = this.leafIcons.get(id);
+			const handler = this.iconClickHandlers.get(id);
+			if (el && handler) {
+				el.removeEventListener('click', handler);
+			}
+			el?.remove();
+			this.leafIcons.delete(id);
+			this.iconClickHandlers.delete(id);
+			if (this.popupManager) {
 				const popups = this.popupManager.getActivePopups();
 				const popup = popups.get(id);
 				if (popup) { popup.remove(); popups.delete(id); }
@@ -97,7 +126,7 @@ export class LeafIconManager {
 		if (locked && !existingBadge) {
 			const b = iconEl.ownerDocument.createElement('span');
 			b.classList.add('lw-lock-badge');
-			b.innerHTML = lockBadge;
+			b.appendChild(createLockBadgeSVG(iconEl.ownerDocument));
 			iconEl.appendChild(b);
 		} else if (!locked && existingBadge) {
 			existingBadge.remove();
@@ -107,8 +136,16 @@ export class LeafIconManager {
 	}
 
 	cleanup(): void {
-		this.leafIcons.forEach(el => el.remove());
+		this.leafIcons.forEach((el, id) => {
+			const handler = this.iconClickHandlers.get(id);
+			if (handler) {
+				el.removeEventListener('click', handler);
+			}
+			el.remove();
+		});
 		this.leafIcons.clear();
+		this.iconClickHandlers.clear();
+		this.registeredDocs.clear();
 	}
 
 	refreshAll(): void {

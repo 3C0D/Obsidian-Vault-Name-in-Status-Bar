@@ -20,12 +20,12 @@ export default class StatusBarVaultName extends Plugin {
 	leafIconManager: LeafIconManager;
 	saveDebounced = debounce(async () => {
 		await this.saveData(this.settings);
-	}, 500, true);
+	}, 500, false);
 
 	async onload(): Promise<void> {
 		await this.loadSettings();
 		this.addSettingTab(new Settings(this.app, this));
-		const statusBar = document.querySelector('.status-bar');
+		const statusBar = this.app.workspace.containerEl.querySelector('.status-bar');
 
 		// Initialize VaultName
 		this.vaultName = new VaultName(
@@ -56,6 +56,13 @@ export default class StatusBarVaultName extends Plugin {
 			(leaf) => getFilePathForLeaf(leaf)
 		);
 
+		// Initialize LeafIconManager first (needed by PopupManager)
+		this.leafIconManager = new LeafIconManager(
+			() => this.settings,
+			(cb) => this.app.workspace.iterateAllLeaves(cb),
+			this.registerDomEvent.bind(this)
+		);
+
 		// Initialize PopupManager
 		this.popupManager = new PopupManager(
 			() => this.settings,
@@ -66,14 +73,10 @@ export default class StatusBarVaultName extends Plugin {
 			(leaf) => this.leafIconManager.refresh(leaf),
 			(leaf, opts) => this.app.workspace.setActiveLeaf(leaf, opts)
 		);
+		this.popupManager.setApp(this.app);
 
-		// Initialize LeafIconManager
-		this.leafIconManager = new LeafIconManager(
-			() => this.settings,
-			(cb) => this.app.workspace.iterateAllLeaves(cb),
-			this.registerDomEvent.bind(this),
-			this.popupManager
-		);
+		// Link PopupManager to LeafIconManager
+		this.leafIconManager.setPopupManager(this.popupManager);
 
 		// Inject icons into all existing leaves, then watch for new ones
 		this.registerEvent(

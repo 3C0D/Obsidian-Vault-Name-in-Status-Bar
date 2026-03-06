@@ -1,6 +1,6 @@
 import { addIcon, App, Menu } from "obsidian";
 import { vaults_picker } from "./variables.ts";
-import { vaultPaths } from "./getVaults.ts";
+import { getVaultPaths } from "./getVaults.ts";
 import StatusBarVaultName from "./main.ts";
 
 addIcon("buttonSVG", vaults_picker);
@@ -19,7 +19,8 @@ export function vaultsMenu(plugin: StatusBarVaultName, app: App, evt: MouseEvent
 
     menu.addSeparator();
 
-    const currentVaultPath = (app.vault.adapter as any).basePath;
+    const currentVaultPath = (app.vault.adapter as any).basePath as string | undefined;
+    const vaultPaths = getVaultPaths();
 
     vaultPaths.forEach((vaultPath) => {
         const vaultName = getName(vaultPath);

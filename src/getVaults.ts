@@ -4,56 +4,24 @@ import * as path from "path";
 import * as os from "os";
 import type { ObsidianJsonConfig } from "./interfaces.ts";
 
-function getVaultsConfig(): string | null {
-    const userDir: string = os.homedir();
-    if (Platform.isWin) {
-        return path.join(userDir, 'AppData', 'Roaming', 'obsidian', 'obsidian.json');
-    } else if (Platform.isMacOS) {
-        return path.join(userDir, 'Library', 'Application Support', 'obsidian', 'obsidian.json');
-    } else if (Platform.isLinux) {
-        return path.join(userDir, '.config', 'obsidian', 'obsidian.json');
-    } else {
-        console.log("should open explorer?");
-        return null;
-    }
+function getVaultsConfigPath(): string | null {
+	const userDir = os.homedir();
+	if (Platform.isWin)
+		return path.join(userDir, 'AppData', 'Roaming', 'obsidian', 'obsidian.json');
+	if (Platform.isMacOS)
+		return path.join(userDir, 'Library', 'Application Support', 'obsidian', 'obsidian.json');
+	if (Platform.isLinux)
+		return path.join(userDir, '.config', 'obsidian', 'obsidian.json');
+	return null;
 }
 
-
-
-function readObsidianJson(): ObsidianJsonConfig | null {
-    try {
-        const vaultsConfigPath = getVaultsConfig();
-        if (vaultsConfigPath) {
-            const vaultsConfigContent = JSON.parse(readFileSync(vaultsConfigPath, "utf8"));
-            return vaultsConfigContent as ObsidianJsonConfig;
-        } else {
-            return null;
-        }
-    } catch (err) {
-        if (err instanceof SyntaxError) {
-            console.error("Invalid JSON format in obsidian.json");
-        } else if (err instanceof Error) {
-            console.error("Error reading obsidian.json:", err.message);
-        }
-        return null;
-    }
+export function getVaultPaths(): string[] {
+	try {
+		const configPath = getVaultsConfigPath();
+		if (!configPath) return [];
+		const config = JSON.parse(readFileSync(configPath, "utf8")) as ObsidianJsonConfig;
+		return Object.values(config.vaults).map(v => v.path);
+	} catch {
+		return [];
+	}
 }
-
-function getAllVaultPaths(): string[] | null {
-    const obsidianConfig = readObsidianJson();
-    if (obsidianConfig) {
-        const paths: string[] = [];
-        for (const key in obsidianConfig.vaults) {
-            if (Object.prototype.hasOwnProperty.call(obsidianConfig.vaults, key)) {
-                paths.push(obsidianConfig.vaults[key].path);
-            }
-        }
-        return paths;
-    } else {
-        return null;
-    }
-}
-
-export const vaultPaths = getAllVaultPaths()??[];
-
-

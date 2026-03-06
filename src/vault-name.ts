@@ -14,11 +14,15 @@ export class VaultName {
 	}
 
 	init(statusBar: Element | null): void {
+		if (!statusBar) {
+			console.warn('Status bar not found, vault name will not be displayed');
+			return;
+		}
 		const settings = this.getSettings();
 		this.vaultNameEl.innerHTML = settings.reducedAtStart ? `${chevronsVertical}` : `${chevronsVertical} ${this.getTruncatedName(this.getVaultName())}`;
 		this.vaultNameEl.classList.add("status-bar-vault-name");
 		this.updateTooltip();
-		statusBar?.prepend(this.vaultNameEl);
+		statusBar.prepend(this.vaultNameEl);
 		this.updateStyle();
 		this.updateVisibility();
 	}
