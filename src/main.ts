@@ -30,9 +30,9 @@ export default class StatusBarVaultName extends Plugin {
 		// Initialize VaultName
 		this.vaultName = new VaultName(
 			() => this.settings,
-			() => this.app.vault.getName()
+			() => this.app.vault.getName(),
+			statusBar
 		);
-		this.vaultName.init(statusBar);
 
 		// Register click event on vault name element
 		this.registerDomEvent(this.vaultName.getEl(), 'click', (e) => vaultsMenu(this, this.app, e));

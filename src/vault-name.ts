@@ -6,9 +6,11 @@ export class VaultName {
 
 	constructor(
 		private getSettings: () => SBVNSettings,
-		private getVaultName: () => string
+		private getVaultName: () => string,
+		statusBar: Element | null
 	) {
 		this.vaultNameEl = document.createElement('div');
+		this.init(statusBar);
 	}
 
 	init(statusBar: Element | null): void {
