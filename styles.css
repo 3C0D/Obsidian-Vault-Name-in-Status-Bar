@@ -92,8 +92,13 @@
     position: absolute;
     top: -4px;
     right: -4px;
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
     color: var(--interactive-accent);
     pointer-events: none;
+}
+
+.lw-lock-badge svg {
+    width: 8px;
+    height: 8px;
 }

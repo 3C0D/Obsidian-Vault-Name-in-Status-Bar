@@ -1,5 +1,5 @@
 import type { SBVNSettings } from "./interfaces.ts";
-import { chevronsVertical } from "./variables.ts";
+import { setIcon } from "obsidian";
 
 export class VaultName {
 	private vaultNameEl: HTMLDivElement;
@@ -19,7 +19,13 @@ export class VaultName {
 			return;
 		}
 		const settings = this.getSettings();
-		this.vaultNameEl.innerHTML = settings.reducedAtStart ? `${chevronsVertical}` : `${chevronsVertical} ${this.getTruncatedName(this.getVaultName())}`;
+		if (settings.reducedAtStart) {
+			const iconSpan = document.createElement('span');
+			setIcon(iconSpan, 'chevrons-up-down');
+			this.vaultNameEl.appendChild(iconSpan);
+		} else {
+			this.vaultNameEl.textContent = this.getTruncatedName(this.getVaultName());
+		}
 		this.vaultNameEl.classList.add("status-bar-vault-name");
 		this.updateTooltip();
 		statusBar.prepend(this.vaultNameEl);
@@ -39,7 +45,14 @@ export class VaultName {
 
 	updateName(): void {
 		const settings = this.getSettings();
-		this.vaultNameEl.innerHTML = settings.reducedAtStart ? `${chevronsVertical}` : `${chevronsVertical} ${this.getTruncatedName(this.getVaultName())}`;
+		this.vaultNameEl.innerHTML = '';
+		if (settings.reducedAtStart) {
+			const iconSpan = document.createElement('span');
+			setIcon(iconSpan, 'chevrons-up-down');
+			this.vaultNameEl.appendChild(iconSpan);
+		} else {
+			this.vaultNameEl.textContent = this.getTruncatedName(this.getVaultName());
+		}
 	}
 
 	updateTooltip(): void {

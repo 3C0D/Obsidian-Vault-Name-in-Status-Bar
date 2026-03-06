@@ -2,7 +2,6 @@ import { Plugin, WorkspaceLeaf, setIcon } from "obsidian";
 import type { SBVNSettings } from "./interfaces.ts";
 import { getLeafId, getFilePathForLeaf, isFileLocked, getTooltipForLeaf } from "./leaf-utils.ts";
 import { PopupManager } from "./popup-manager.ts";
-import { createLockBadgeSVG } from "./svg-utils.ts";
 
 export class LeafIconManager {
 	private leafIcons: Map<string, HTMLDivElement> = new Map();
@@ -126,7 +125,7 @@ export class LeafIconManager {
 		if (locked && !existingBadge) {
 			const b = iconEl.ownerDocument.createElement('span');
 			b.classList.add('lw-lock-badge');
-			b.appendChild(createLockBadgeSVG(iconEl.ownerDocument));
+			setIcon(b, 'lock');
 			iconEl.appendChild(b);
 		} else if (!locked && existingBadge) {
 			existingBadge.remove();

@@ -1,7 +1,6 @@
-import { MarkdownView, WorkspaceLeaf } from "obsidian";
+import { MarkdownView, WorkspaceLeaf, setIcon } from "obsidian";
 import type { SBVNSettings } from "./interfaces.ts";
 import type { EditorPosition } from "obsidian";
-import { lockOpen, lockClosed } from "./variables.ts";
 import { getLeafId, getFilePathForLeaf, getWidthForLeafPath, isFileLocked } from "./leaf-utils.ts";
 import { WidthManager } from "./width-manager.ts";
 import { WidthGuides } from "./guides.ts";
@@ -154,12 +153,13 @@ export class PopupManager {
 			const width = getWidthForLeafPath(filePath, settings);
 			label.textContent = `${width}px`;
 			slider.value = `${width}`;
+			lockBtn.innerHTML = '';
 			if (isFileLocked(filePath, settings)) {
-				lockBtn.innerHTML = lockClosed;
+				setIcon(lockBtn, 'lock');
 				lockBtn.style.color = 'var(--interactive-accent)';
 				lockBtn.setAttribute('aria-label', 'Local width (this file only)');
 			} else {
-				lockBtn.innerHTML = lockOpen;
+				setIcon(lockBtn, 'unlock');
 				lockBtn.style.color = 'var(--text-muted)';
 				lockBtn.setAttribute('aria-label', 'Global width (all files)');
 			}
