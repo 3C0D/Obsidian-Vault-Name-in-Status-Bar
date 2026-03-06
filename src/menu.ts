@@ -1,4 +1,4 @@
-import { addIcon, App, Menu } from "obsidian";
+import { addIcon, App, Menu, FileSystemAdapter } from "obsidian";
 import { vaults_picker } from "./variables.ts";
 import { getVaultPaths } from "./getVaults.ts";
 import StatusBarVaultName from "./main.ts";
@@ -19,7 +19,10 @@ export function vaultsMenu(plugin: StatusBarVaultName, app: App, evt: MouseEvent
 
     menu.addSeparator();
 
-    const currentVaultPath = (app.vault.adapter as any).basePath as string | undefined;
+    const adapter = app.vault.adapter;
+    const currentVaultPath = adapter instanceof FileSystemAdapter 
+        ? adapter.basePath 
+        : undefined;
     const vaultPaths = getVaultPaths();
 
     vaultPaths.forEach((vaultPath) => {
@@ -45,7 +48,7 @@ export function vaultsMenu(plugin: StatusBarVaultName, app: App, evt: MouseEvent
             .setTitle('Vaults')
             .setIcon("buttonSVG")
             .onClick(async () => {
-                (app as any).openVaultChooser();
+                app.openVaultChooser();
             });
 
     });

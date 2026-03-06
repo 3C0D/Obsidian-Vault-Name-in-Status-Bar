@@ -1,20 +1,11 @@
-import { WorkspaceLeaf, MarkdownView } from "obsidian";
+import { WorkspaceLeaf, MarkdownView, FileView } from "obsidian";
 import type { SBVNSettings } from "./interfaces.ts";
-
-interface ViewWithFile {
-	file?: { path: string };
-}
-
-interface LeafWithId {
-	id?: string;
-}
 
 /**
  * Returns a stable id for a leaf
  */
 export function getLeafId(leaf: WorkspaceLeaf): string {
-	const leafWithId = leaf as unknown as LeafWithId;
-	return leafWithId.id ?? '';
+	return leaf.id ?? '';
 }
 
 /**
@@ -24,8 +15,7 @@ export function getFilePathForLeaf(leaf: WorkspaceLeaf): string | null {
 	if (leaf.view instanceof MarkdownView) {
 		return leaf.view.file?.path ?? null;
 	}
-	const view = leaf.view as ViewWithFile;
-	return view.file?.path ?? null;
+	return (leaf.view as FileView).file?.path ?? null;
 }
 
 /**

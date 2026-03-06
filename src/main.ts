@@ -25,7 +25,7 @@ export default class StatusBarVaultName extends Plugin {
 	async onload(): Promise<void> {
 		await this.loadSettings();
 		this.addSettingTab(new Settings(this.app, this));
-		const statusBar = document.querySelector('.status-bar');
+		const statusBar = this.app.statusBar.containerEl;
 
 		// Initialize VaultName
 		this.vaultName = new VaultName(

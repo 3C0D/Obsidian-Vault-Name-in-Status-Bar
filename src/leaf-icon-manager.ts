@@ -1,4 +1,4 @@
-import { Plugin, WorkspaceLeaf, setIcon } from "obsidian";
+import { Plugin, WorkspaceLeaf, setIcon, FileView } from "obsidian";
 import type { SBVNSettings } from "./interfaces.ts";
 import { getLeafId, getFilePathForLeaf, isFileLocked, getTooltipForLeaf } from "./leaf-utils.ts";
 import { PopupManager } from "./popup-manager.ts";
@@ -48,11 +48,7 @@ export class LeafIconManager {
 				return;
 			}
 
-			interface ViewWithActions {
-				actionsEl?: HTMLElement;
-			}
-			const viewWithActions = leaf.view as unknown as ViewWithActions;
-			const actionsEl = viewWithActions.actionsEl;
+			const actionsEl = (leaf.view as FileView).actionsEl;
 			if (!actionsEl) return;
 
 			const ownerDoc = actionsEl.ownerDocument;
