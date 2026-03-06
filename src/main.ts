@@ -41,6 +41,7 @@ export default class StatusBarVaultName extends Plugin {
 
 		// Register click event on vault name element
 		this.registerDomEvent(this.vaultName.getEl(), 'click', (e) => vaultsMenu(this, this.app, e));
+		this.registerDomEvent(this.vaultName.getEl(), 'contextmenu', (e) => vaultsMenu(this, this.app, e));
 
 		// Global CSS style element
 		this.lineWidthStyleEl = document.createElement('style');
