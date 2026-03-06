@@ -3,20 +3,13 @@ import type { SBVNSettings } from "./interfaces.ts";
 import { getFilePathForLeaf, getWidthForLeafPath } from "./leaf-utils.ts";
 
 export class WidthManager {
-	private getSettings: () => SBVNSettings;
-	private lineWidthStyleEl: HTMLStyleElement;
-	private iterateAllLeaves: (cb: (leaf: WorkspaceLeaf) => void) => void;
 	private resizeObserver: ResizeObserver | null = null;
 
 	constructor(
-		getSettings: () => SBVNSettings,
-		lineWidthStyleEl: HTMLStyleElement,
-		iterateAllLeaves: (cb: (leaf: WorkspaceLeaf) => void) => void
-	) {
-		this.getSettings = getSettings;
-		this.lineWidthStyleEl = lineWidthStyleEl;
-		this.iterateAllLeaves = iterateAllLeaves;
-	}
+		private getSettings: () => SBVNSettings,
+		private lineWidthStyleEl: HTMLStyleElement,
+		private iterateAllLeaves: (cb: (leaf: WorkspaceLeaf) => void) => void
+	) {}
 
 	// Applies a width directly to a specific leaf's DOM elements
 	applyWidthToLeaf(leaf: WorkspaceLeaf, px: number): void {

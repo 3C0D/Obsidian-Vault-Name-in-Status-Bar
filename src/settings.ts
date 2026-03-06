@@ -2,11 +2,8 @@ import { PluginSettingTab, App, Setting } from "obsidian";
 import StatusBarVaultName from "./main.ts";
 
 export class Settings extends PluginSettingTab {
-    plugin: StatusBarVaultName;
-
-    constructor(app: App, plugin: StatusBarVaultName) {
+    constructor(app: App, public plugin: StatusBarVaultName) {
         super(app, plugin);
-        this.plugin = plugin;
     }
 
     display(): void {

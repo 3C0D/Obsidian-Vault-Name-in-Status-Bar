@@ -5,16 +5,10 @@ export class WidthGuides {
 	rightGuide: HTMLDivElement | null = null;
 	guideTimeout: number = 0;
 
-	private getWidthForLeafPath: (filePath: string | null) => number;
-	private getFilePathForLeaf: (leaf: WorkspaceLeaf) => string | null;
-
 	constructor(
-		getWidthForLeafPath: (filePath: string | null) => number,
-		getFilePathForLeaf: (leaf: WorkspaceLeaf) => string | null
-	) {
-		this.getWidthForLeafPath = getWidthForLeafPath;
-		this.getFilePathForLeaf = getFilePathForLeaf;
-	}
+		private getWidthForLeafPath: (filePath: string | null) => number,
+		private getFilePathForLeaf: (leaf: WorkspaceLeaf) => string | null
+	) {}
 
 	showWidthGuidesForLeaf(leaf: WorkspaceLeaf): void {
 		this.hideWidthGuides();

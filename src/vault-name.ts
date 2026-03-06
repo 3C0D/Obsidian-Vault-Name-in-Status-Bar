@@ -2,16 +2,12 @@ import type { SBVNSettings } from "./interfaces.ts";
 import { chevronsVertical } from "./variables.ts";
 
 export class VaultName {
-	private getSettings: () => SBVNSettings;
-	private getVaultName: () => string;
 	private vaultNameEl: HTMLDivElement;
 
 	constructor(
-		getSettings: () => SBVNSettings,
-		getVaultName: () => string
+		private getSettings: () => SBVNSettings,
+		private getVaultName: () => string
 	) {
-		this.getSettings = getSettings;
-		this.getVaultName = getVaultName;
 		this.vaultNameEl = document.createElement('div');
 	}
 
