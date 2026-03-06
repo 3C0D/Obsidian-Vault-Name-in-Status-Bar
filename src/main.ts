@@ -79,6 +79,7 @@ export default class StatusBarVaultName extends Plugin {
 		this.cleanupResizeObserver();
 	}
 
+	// Closes popups when clicking outside of them or their associated icons
 	onDocumentClick(e: MouseEvent): void {
 		this.activePopups.forEach((popup, leafId) => {
 			const icon = this.leafIcons.get(leafId);
@@ -483,48 +484,51 @@ export default class StatusBarVaultName extends Plugin {
 		this.hideWidthGuides();
 
 		const ownerDoc = leaf.containerEl.ownerDocument;
-		if (ownerDoc !== document) return;
-
 		const filePath = this.getFilePathForLeaf(leaf);
+		// leaf width
 		const px = this.getWidthForLeafPath(filePath);
 		const containerEl = leaf.containerEl as HTMLElement;
 
-		// Reading mode
+		// Reading mode: full-width container — auto margins are on a child element, so position must be calculated manually
 		const readingContainer = containerEl.querySelector('.markdown-reading-view') as HTMLElement | null;
 		if (readingContainer && readingContainer.offsetParent !== null) {
-			const containerRect = readingContainer.getBoundingClientRect();
-			const offsetX = Math.max(0, (containerRect.width - px) / 2);
+			const rect = readingContainer.getBoundingClientRect();
+			// Side margin (centering offset)
+			const offsetX = Math.max(0, (rect.width - px) / 2);
 
-			this.leftGuide = document.createElement('div');
+			this.leftGuide = ownerDoc.createElement('div');
 			this.leftGuide.classList.add('line-width-guide');
-			this.leftGuide.style.left = `${containerRect.left + offsetX}px`;
+			// Going from the left edge of the container, add the offset to get to the left guide position
+			this.leftGuide.style.left = `${rect.left + offsetX}px`;
 
-			this.rightGuide = document.createElement('div');
+			this.rightGuide = ownerDoc.createElement('div');
 			this.rightGuide.classList.add('line-width-guide');
-			this.rightGuide.style.left = `${containerRect.left + offsetX + px}px`;
+			// Going from the left edge of the container, add leaf width and offset to get to the right guide position
+			this.rightGuide.style.left = `${rect.left + px + offsetX}px`;
 
-			document.body.appendChild(this.leftGuide);
-			document.body.appendChild(this.rightGuide);
+			ownerDoc.body.appendChild(this.leftGuide);
+			ownerDoc.body.appendChild(this.rightGuide);
 			return;
 		}
 
-		// Live preview / source mode
+		// Live preview / source mode: cm-sizer has auto margins, so its edges are already the text edges
 		const contentEl = containerEl.querySelector('.cm-sizer') as HTMLElement | null;
 		if (!contentEl) return;
 
 		const rect = contentEl.getBoundingClientRect();
-		if (rect.width <= 0) return;
 
-		this.leftGuide = document.createElement('div');
+		this.leftGuide = ownerDoc.createElement('div');
 		this.leftGuide.classList.add('line-width-guide');
+		// Left edge of the content. Simple because cm-sizer is already centered with auto margins
 		this.leftGuide.style.left = `${rect.left}px`;
 
-		this.rightGuide = document.createElement('div');
+		this.rightGuide = ownerDoc.createElement('div');
 		this.rightGuide.classList.add('line-width-guide');
+		// Right edge of the content
 		this.rightGuide.style.left = `${rect.right}px`;
 
-		document.body.appendChild(this.leftGuide);
-		document.body.appendChild(this.rightGuide);
+		ownerDoc.body.appendChild(this.leftGuide);
+		ownerDoc.body.appendChild(this.rightGuide);
 	}
 
 	hideWidthGuides(): void {
