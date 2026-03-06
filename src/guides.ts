@@ -20,8 +20,7 @@ export class WidthGuides {
 
 		// Reading mode: full-width container — auto margins are on a child element, so position must be calculated manually
 		const readingContainer = containerEl.querySelector('.markdown-reading-view') as HTMLElement | null;
-		if (readingContainer) {
-			if (readingContainer.offsetParent === null) return;
+		if (readingContainer && readingContainer.offsetParent !== null) {
 			const rect = readingContainer.getBoundingClientRect();
 			if (rect.width === 0) return;
 			// Side margin (centering offset)
