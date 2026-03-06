@@ -9,7 +9,7 @@
 
 The vault name appears in the status bar. Click it to open the vaults menu for quick switching. You can customize its color, font size, and maximum display length — or hide it entirely.
 
-![alt text](Assets/example.png)
+![alt text](Assets/vaultName.png)
 
 ## Line Width Control
 
@@ -19,11 +19,11 @@ The slider works across all windows — including split panes and secondary wind
 
 **Global mode (lock open):** the slider adjusts the width for all unlocked files.
 
-![line width](Assets/line_width_0.png)
+![line width](Assets/unlocked.png)
 
 **Local mode (lock closed):** the slider adjusts the width for this file only. A small lock badge appears on the icon as a reminder.
 
-![line width](Assets/line_width.png)
+![line width](Assets/locked.png)
 
 Clicking the lock again removes the local override and reverts to the global width.
 
