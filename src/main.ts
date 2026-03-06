@@ -4,6 +4,7 @@ import { vaultsMenu } from "./menu.ts";
 import { chevronsVertical, chevronsHorizontal, lockOpen, lockClosed, lockBadge, DEFAULT_SETTINGS } from "./variables.ts";
 import type { SBVNSettings } from "./interfaces.ts";
 import { WidthGuides } from "./guides.ts";
+import { getLeafId, getFilePathForLeaf, getWidthForLeafPath, isFileLocked, getTooltipForLeaf } from "./leaf-utils.ts";
 
 export default class StatusBarVaultName extends Plugin {
 	settings: SBVNSettings;
@@ -64,8 +65,8 @@ export default class StatusBarVaultName extends Plugin {
 
 		// Initialize width guides
 		this.guides = new WidthGuides(
-			(filePath) => this.getWidthForLeafPath(filePath),
-			(leaf) => this.getFilePathForLeaf(leaf)
+			(filePath) => getWidthForLeafPath(filePath, this.settings),
+			(leaf) => getFilePathForLeaf(leaf)
 		);
 	}
 
@@ -158,18 +159,13 @@ export default class StatusBarVaultName extends Plugin {
 
 	// ---------------------------- Per-leaf icon injection -------------------
 
-	// Returns a stable id for a leaf
-	getLeafId(leaf: WorkspaceLeaf): string {
-		return (leaf as any).id ?? '';
-	}
-
 	// Injects the line width icon into all Markdown leaves that don't have one yet
 	injectAllLeafIcons(): void {
 		this.app.workspace.iterateAllLeaves(leaf => {
 			const viewType = leaf.view?.getViewType();
 			if (viewType !== 'markdown') return;
 
-			const leafId = this.getLeafId(leaf);
+			const leafId = getLeafId(leaf);
 			if (!leafId) return;
 
 			// Check if icon already injected and still in DOM
@@ -195,7 +191,7 @@ export default class StatusBarVaultName extends Plugin {
 			const iconEl = ownerDoc.createElement('div');
 			iconEl.classList.add('lw-leaf-icon');
 			iconEl.innerHTML = `<span class="lw-icon">${chevronsHorizontal}</span>`;
-			iconEl.setAttribute('aria-label', this.getTooltipForLeaf(leaf));
+			iconEl.setAttribute('aria-label', getTooltipForLeaf(leaf, this.settings));
 
 			// Insert before the first existing action button
 			actionsEl.prepend(iconEl);
@@ -216,7 +212,7 @@ export default class StatusBarVaultName extends Plugin {
 		// Clean up icons for leaves that no longer exist
 		const activeLeafIds = new Set<string>();
 		this.app.workspace.iterateAllLeaves(leaf => {
-			activeLeafIds.add(this.getLeafId(leaf));
+			activeLeafIds.add(getLeafId(leaf));
 		});
 		this.leafIcons.forEach((el, id) => {
 			if (!activeLeafIds.has(id)) {
@@ -230,12 +226,12 @@ export default class StatusBarVaultName extends Plugin {
 
 	// Updates the badge and tooltip on the icon for a given leaf
 	refreshLeafIcon(leaf: WorkspaceLeaf): void {
-		const leafId = this.getLeafId(leaf);
+		const leafId = getLeafId(leaf);
 		const iconEl = this.leafIcons.get(leafId);
 		if (!iconEl) return;
 
-		const filePath = this.getFilePathForLeaf(leaf);
-		const locked = this.isFileLocked(filePath);
+		const filePath = getFilePathForLeaf(leaf);
+		const locked = isFileLocked(filePath, this.settings);
 
 		const existingBadge = iconEl.querySelector('.lw-lock-badge');
 		if (locked && !existingBadge) {
@@ -247,30 +243,7 @@ export default class StatusBarVaultName extends Plugin {
 			existingBadge.remove();
 		}
 
-		iconEl.setAttribute('aria-label', this.getTooltipForLeaf(leaf));
-	}
-
-	getFilePathForLeaf(leaf: WorkspaceLeaf): string | null {
-		return (leaf.view as any)?.file?.path ?? null;
-	}
-
-	getWidthForLeafPath(filePath: string | null): number {
-		if (filePath && this.settings.localWidths[filePath] !== undefined) {
-			return this.settings.localWidths[filePath];
-		}
-		return this.settings.lineWidthPx;
-	}
-
-	// Checks if a file has a local width override (locked state)
-	isFileLocked(filePath: string | null): boolean {
-		return filePath !== null && this.settings.localWidths[filePath] !== undefined;
-	}
-
-	getTooltipForLeaf(leaf: WorkspaceLeaf): string {
-		const filePath = this.getFilePathForLeaf(leaf);
-		const width = this.getWidthForLeafPath(filePath);
-		const locked = this.isFileLocked(filePath);
-		return `Editor width: ${width}px${locked ? ' (local)' : ' (global)'}`;
+		iconEl.setAttribute('aria-label', getTooltipForLeaf(leaf, this.settings));
 	}
 
 	// ---------------------------- Popup per leaf ----------------------------
@@ -287,7 +260,7 @@ export default class StatusBarVaultName extends Plugin {
 	}
 
 	togglePopupForLeaf(leaf: WorkspaceLeaf, iconEl: HTMLDivElement): void {
-		const leafId = this.getLeafId(leaf);
+		const leafId = getLeafId(leaf);
 		const existing = this.activePopups.get(leafId);
 		if (existing) {
 			existing.remove();
@@ -299,7 +272,7 @@ export default class StatusBarVaultName extends Plugin {
 	}
 
 	showPopupForLeaf(leaf: WorkspaceLeaf, iconEl: HTMLDivElement): void {
-		const leafId = this.getLeafId(leaf);
+		const leafId = getLeafId(leaf);
 
 		// Save cursor position
 		const view = leaf.view instanceof MarkdownView ? leaf.view : null;
@@ -317,7 +290,7 @@ export default class StatusBarVaultName extends Plugin {
 			if (id !== leafId) { popup.remove(); this.activePopups.delete(id); }
 		});
 
-		const filePath = this.getFilePathForLeaf(leaf);
+		const filePath = getFilePathForLeaf(leaf);
 
 		const popup = document.createElement('div');
 		popup.classList.add('line-width-slider-popup');
@@ -340,10 +313,10 @@ export default class StatusBarVaultName extends Plugin {
 
 		// Updates the popup UI to reflect the current lock state (local vs global width)
 		const updateLockState = (): void => {
-			const width = this.getWidthForLeafPath(filePath);
+			const width = getWidthForLeafPath(filePath, this.settings);
 			label.textContent = `${width}px`;
 			slider.value = `${width}`;
-			if (this.isFileLocked(filePath)) {
+			if (isFileLocked(filePath, this.settings)) {
 				lockBtn.innerHTML = lockClosed;
 				lockBtn.style.color = 'var(--interactive-accent)';
 				lockBtn.setAttribute('aria-label', 'Local width (this file only)');
@@ -359,7 +332,7 @@ export default class StatusBarVaultName extends Plugin {
 		lockBtn.addEventListener('click', (e) => {
 			e.stopPropagation();
 			if (!filePath) return;
-			if (this.isFileLocked(filePath)) {
+			if (isFileLocked(filePath, this.settings)) {
 				// Unlock: remove local override, apply global width immediately
 				delete this.settings.localWidths[filePath];
 				void this.saveData(this.settings);
@@ -377,7 +350,7 @@ export default class StatusBarVaultName extends Plugin {
 			const value = parseInt(slider.value);
 			label.textContent = `${value}px`;
 
-			if (this.isFileLocked(filePath)) {
+			if (isFileLocked(filePath, this.settings)) {
 				// Local mode: apply only to this leaf
 				if (filePath) this.settings.localWidths[filePath] = value;
 				this.applyWidthToLeaf(leaf, value);
@@ -467,8 +440,8 @@ export default class StatusBarVaultName extends Plugin {
 
 	updateEditorWidths(): void {
 		this.app.workspace.iterateAllLeaves(leaf => {
-			const filePath = this.getFilePathForLeaf(leaf);
-			const px = this.getWidthForLeafPath(filePath);
+			const filePath = getFilePathForLeaf(leaf);
+			const px = getWidthForLeafPath(filePath, this.settings);
 			this.applyWidthToLeaf(leaf, px);
 		});
 	}
