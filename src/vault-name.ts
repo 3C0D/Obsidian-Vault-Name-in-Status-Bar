@@ -1,5 +1,5 @@
 import type { SBVNSettings } from "./interfaces.ts";
-import { setIcon } from "obsidian";
+import { setIcon, type Plugin } from "obsidian";
 
 export class VaultName {
 	private vaultNameEl: HTMLDivElement;
@@ -7,7 +7,9 @@ export class VaultName {
 	constructor(
 		private getSettings: () => SBVNSettings,
 		private getVaultName: () => string,
-		statusBar: Element | null
+		statusBar: Element | null,
+		private registerDomEvent: Plugin["registerDomEvent"],
+		private vaultsMenu: (e: MouseEvent) => void
 	) {
 		this.vaultNameEl = document.createElement('div');
 		this.init(statusBar);
@@ -31,6 +33,10 @@ export class VaultName {
 		statusBar.prepend(this.vaultNameEl);
 		this.updateStyle();
 		this.updateVisibility();
+
+		// Register click events
+		this.registerDomEvent(this.vaultNameEl, 'click', this.vaultsMenu);
+		this.registerDomEvent(this.vaultNameEl, 'contextmenu', this.vaultsMenu);
 	}
 
 	getEl(): HTMLDivElement {

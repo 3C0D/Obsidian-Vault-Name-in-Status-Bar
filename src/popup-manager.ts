@@ -86,7 +86,8 @@ export class PopupManager {
 	private guidesUpdateScheduled = false;
 	private scheduleGuidesUpdate(leaf: WorkspaceLeaf): void {
 		if (this.guidesUpdateScheduled) return;
-		this.guidesUpdateScheduled = true;
+		this.guidesUpdateScheduled = true;		
+		// Use rAF to wait for DOM layout before calculating guide positions. 60 FPS
 		requestAnimationFrame(() => {
 			this.guides.showWidthGuidesForLeaf(leaf);
 			this.guidesUpdateScheduled = false;

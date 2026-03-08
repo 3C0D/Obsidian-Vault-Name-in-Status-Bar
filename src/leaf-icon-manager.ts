@@ -5,6 +5,7 @@ import { PopupManager } from "./popup-manager.ts";
 
 export class LeafIconManager {
 	private leafIcons: Map<string, HTMLDivElement> = new Map();
+	// registeredDocs keeps track of documents we've registered click handlers on for closing popups when clicking outside
 	private registeredDocs: Set<Document> = new Set();
 	private popupManager: PopupManager | null = null;
 	private iconClickHandlers: Map<string, (e: MouseEvent) => void> = new Map();
