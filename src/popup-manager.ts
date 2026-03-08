@@ -111,7 +111,11 @@ export class PopupManager {
 			popup.remove();
 			this.activePopups.delete(leafId);
 			const leaf = this.findLeafById(leafId);
-			if (leaf && leaf.containerEl.ownerDocument === clickDoc) {
+			if (
+				leaf &&
+				leaf.containerEl.ownerDocument === clickDoc &&
+				leaf.containerEl.contains(e.target as Node)
+			) {
 				this.restoreCursor(leafId, leaf);
 			}
 		});
@@ -171,7 +175,7 @@ export class PopupManager {
 
 	/**
 	 * Toggles the visibility of a popup for a given leaf.
-	 * - If popup exists, removes it and restores cursor.
+	 * - If popup exists, removes it.
 	 * - If popup doesn't exist, creates and shows it.
 	 */
 	togglePopupForLeaf(leaf: WorkspaceLeaf, iconEl: HTMLDivElement): void {
@@ -180,7 +184,6 @@ export class PopupManager {
 		if (existing) {
 			existing.remove();
 			this.activePopups.delete(leafId);
-			this.restoreCursor(leafId, leaf);
 		} else {
 			this.showPopupForLeaf(leaf, iconEl);
 		}
