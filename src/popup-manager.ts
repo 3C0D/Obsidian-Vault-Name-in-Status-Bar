@@ -42,7 +42,7 @@ interface CursorState {
  */
 export class PopupManager {
 	private activePopups: Map<string, HTMLDivElement> = new Map();
-	private savedCursors: Map<string, CursorState> = new Map();
+	private savedCursor: { leafId: string; state: CursorState } | null = null;
 
 	constructor(
 		private app: App,
@@ -70,12 +70,13 @@ export class PopupManager {
 	 */
 	restoreCursor(leafId: string, leaf: WorkspaceLeaf): void {
 		if (!this.getSettings().restoreCursorOnClose) return;
-		const cursor = this.savedCursors.get(leafId);
+		const cursor =
+			this.savedCursor?.leafId === leafId ? this.savedCursor.state : null;
 		if (cursor) {
 			this.setActiveLeaf(leaf, { focus: true });
 			const view = leaf.view instanceof MarkdownView ? leaf.view : null;
 			view?.editor?.setSelection(cursor.from, cursor.to);
-			this.savedCursors.delete(leafId);
+			this.savedCursor = null;
 		}
 	}
 
@@ -197,10 +198,13 @@ export class PopupManager {
 		const view = leaf.view instanceof MarkdownView ? leaf.view : null;
 		const editor = view?.editor;
 		if (editor) {
-			this.savedCursors.set(leafId, {
-				from: editor.getCursor("anchor"),
-				to: editor.getCursor("head"),
-			});
+			this.savedCursor = {
+				leafId,
+				state: {
+					from: editor.getCursor("anchor"),
+					to: editor.getCursor("head"),
+				},
+			};
 		}
 
 		// Close any other open popup (only one popup at a time)
@@ -306,6 +310,6 @@ export class PopupManager {
 	cleanup(): void {
 		this.activePopups.forEach((popup) => popup.remove());
 		this.activePopups.clear();
-		this.savedCursors.clear();
+		this.savedCursor = null;
 	}
 }
