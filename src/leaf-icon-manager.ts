@@ -80,21 +80,33 @@ export class LeafIconManager {
 			if (!leafId) return;
 
 			const existing = this.leafIcons.get(leafId);
-			// If icon already exists for this leaf, just update visibility and refresh it
-			if (existing && existing.isConnected) {
+			const ownerDoc = leaf.containerEl.ownerDocument;
+			const actionsEl = (leaf.view as FileView).actionsEl;
+			if (!actionsEl) return;
+
+			// If icon already exists for this leaf AND is in the same document, just update visibility and refresh it
+			if (
+				existing &&
+				existing.isConnected &&
+				existing.ownerDocument === ownerDoc
+			) {
 				existing.style.display = settings.enableLineWidth
 					? "flex"
 					: "none";
 				this.refresh(leaf);
+				// Register click listener if this doc doesn't have one yet (e.g. after pop-out)
+				if (
+					!this.docsWithClickListener.has(ownerDoc) &&
+					this.popupManager
+				) {
+					this.docsWithClickListener.add(ownerDoc);
+					this.registerDomEvent(ownerDoc, "click", (e) =>
+						this.popupManager!.onDocumentClick(e, this.leafIcons),
+					);
+				}
 				return;
 			}
 
-			// The actions element is the header bar in each tab containing action buttons (close, menu, etc.)
-			const actionsEl = (leaf.view as FileView).actionsEl;
-			if (!actionsEl) return;
-
-			// ownerDoc is needed to handle popup windows
-			const ownerDoc = actionsEl.ownerDocument;
 			// Register click handler on document to close popups when clicking outside
 			if (
 				!this.docsWithClickListener.has(ownerDoc) &&
@@ -159,12 +171,7 @@ export class LeafIconManager {
 
 			// Also remove any associated popup
 			if (this.popupManager) {
-				const popups = this.popupManager.getActivePopups();
-				const popup = popups.get(id);
-				if (popup) {
-					popup.remove();
-					popups.delete(id);
-				}
+				this.popupManager.closePopupForLeaf(id);
 			}
 		});
 	}

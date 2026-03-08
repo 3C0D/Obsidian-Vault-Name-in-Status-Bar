@@ -30,7 +30,7 @@ interface CursorState {
  * - Integrates with WidthManager and WidthGuides
  *
  * Methods:
- * - getActivePopups(): Returns the map of active popups
+ * - closePopupForLeaf(leafId: string): Closes the popup for a specific leaf
  * - restoreCursor(leafId: string, leaf: WorkspaceLeaf): Restores cursor position
  * - onDocumentClick(e: MouseEvent, leafIcons: Map<string, HTMLDivElement>): Closes popups on outside clicks
  * - findLeafById(leafId: string): Finds a leaf by its ID
@@ -41,7 +41,7 @@ interface CursorState {
  * - cleanup(): Removes all popups and clears data
  */
 export class PopupManager {
-	private activePopups: Map<string, HTMLDivElement> = new Map();
+	private activePopup: { leafId: string; el: HTMLDivElement } | null = null;
 	private savedCursor: { leafId: string; state: CursorState } | null = null;
 
 	constructor(
@@ -59,57 +59,33 @@ export class PopupManager {
 	) {}
 
 	/**
-	 * Returns the map of active popups (leafId -> popup element)
-	 */
-	getActivePopups(): Map<string, HTMLDivElement> {
-		return this.activePopups;
-	}
-
-	/**
-	 * Restores focus and  cursor position and selection
+	 * Restores focus and cursor position and selection
 	 */
 	restoreCursor(leafId: string, leaf: WorkspaceLeaf): void {
 		if (!this.getSettings().restoreCursorOnClose) return;
 		const cursor =
 			this.savedCursor?.leafId === leafId ? this.savedCursor.state : null;
-		if (cursor) {
-			this.setActiveLeaf(leaf, { focus: true });
-			const view = leaf.view instanceof MarkdownView ? leaf.view : null;
-			view?.editor?.setSelection(cursor.from, cursor.to);
-			this.savedCursor = null;
-		}
+		if (!cursor) return;
+		this.setActiveLeaf(leaf, { focus: true });
+		const view = leaf.view instanceof MarkdownView ? leaf.view : null;
+		view?.editor?.setSelection(cursor.from, cursor.to);
+		this.savedCursor = null;
 	}
 
-	/**
-	 * Closes popups when clicking outside of them or their associated icons
-	 */
 	onDocumentClick(
 		e: MouseEvent,
 		leafIcons: Map<string, HTMLDivElement>,
 	): void {
-		// Collect popups that need to be closed (click was outside the popup and its icon)
-		const toClose: Array<{
-			leafId: string;
-			popup: HTMLDivElement;
-			leaf?: WorkspaceLeaf;
-		}> = [];
-
-		// Check each active popup to see if the click was outside
-		this.activePopups.forEach((popup, leafId) => {
-			const icon = leafIcons.get(leafId);
-			if (
-				!popup.contains(e.target as Node) &&
-				!(icon && icon.contains(e.target as Node))
-			) {
-				toClose.push({ leafId, popup });
-			}
-		});
-
-		// Close collected popups and restore cursor position
+		if (!this.activePopup) return;
 		const clickDoc = (e.target as Node).ownerDocument;
-		toClose.forEach(({ leafId, popup }) => {
-			popup.remove();
-			this.activePopups.delete(leafId);
+		const { leafId, el } = this.activePopup;
+		const icon = leafIcons.get(leafId);
+		if (
+			!el.contains(e.target as Node) &&
+			!(icon && icon.contains(e.target as Node))
+		) {
+			el.remove();
+			this.activePopup = null;
 			const leaf = this.findLeafById(leafId);
 			if (
 				leaf &&
@@ -118,7 +94,7 @@ export class PopupManager {
 			) {
 				this.restoreCursor(leafId, leaf);
 			}
-		});
+		}
 	}
 
 	/**
@@ -180,10 +156,11 @@ export class PopupManager {
 	 */
 	togglePopupForLeaf(leaf: WorkspaceLeaf, iconEl: HTMLDivElement): void {
 		const leafId = getLeafId(leaf);
-		const existing = this.activePopups.get(leafId);
+		const existing =
+			this.activePopup?.leafId === leafId ? this.activePopup.el : null;
 		if (existing) {
 			existing.remove();
-			this.activePopups.delete(leafId);
+			this.activePopup = null;
 		} else {
 			this.showPopupForLeaf(leaf, iconEl);
 		}
@@ -211,12 +188,10 @@ export class PopupManager {
 		}
 
 		// Close any other open popup (only one popup at a time)
-		this.activePopups.forEach((popup, id) => {
-			if (id !== leafId) {
-				popup.remove();
-				this.activePopups.delete(id);
-			}
-		});
+		if (this.activePopup && this.activePopup.leafId !== leafId) {
+			this.activePopup.el.remove();
+			this.activePopup = null;
+		}
 
 		// Build popup DOM structure
 		const filePath = getFilePathForLeaf(leaf);
@@ -304,15 +279,26 @@ export class PopupManager {
 
 		// Mount popup and register it as active
 		ownerDoc.body.appendChild(popup);
-		this.activePopups.set(leafId, popup);
+		this.activePopup = { leafId, el: popup };
+	}
+
+	/**
+	 * Closes the popup for a specific leaf if it is active
+	 */
+	closePopupForLeaf(leafId: string): void {
+		if (this.activePopup?.leafId === leafId) {
+			this.activePopup.el.remove();
+			this.activePopup = null;
+		}
 	}
 
 	/**
 	 * Cleans up all popups and saved cursor positions
 	 */
 	cleanup(): void {
-		this.activePopups.forEach((popup) => popup.remove());
-		this.activePopups.clear();
+		if (this.activePopup) {
+			this.closePopupForLeaf(this.activePopup.leafId);
+		}
 		this.savedCursor = null;
 	}
 }
