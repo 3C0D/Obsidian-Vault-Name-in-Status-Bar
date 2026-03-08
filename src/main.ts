@@ -18,9 +18,13 @@ export default class StatusBarVaultName extends Plugin {
 	widthManager: WidthManager;
 	popupManager: PopupManager;
 	leafIconManager: LeafIconManager;
-	saveDebounced = debounce(async () => {
-		await this.saveData(this.settings);
-	}, 500, false);
+	saveDebounced = debounce(
+		async () => {
+			await this.saveData(this.settings);
+		},
+		500,
+		false,
+	);
 
 	async onload(): Promise<void> {
 		await this.loadSettings();
@@ -33,32 +37,32 @@ export default class StatusBarVaultName extends Plugin {
 			() => this.app.vault.getName(),
 			statusBar,
 			this.registerDomEvent.bind(this),
-			(e) => vaultsMenu(this, this.app, e)
+			(e) => vaultsMenu(this, this.app, e),
 		);
 
 		// Global CSS style element
-		this.lineWidthStyleEl = document.createElement('style');
+		this.lineWidthStyleEl = document.createElement("style");
 		document.head.appendChild(this.lineWidthStyleEl);
 
 		// Initialize WidthManager
 		this.widthManager = new WidthManager(
 			() => this.settings,
 			this.lineWidthStyleEl,
-			(cb) => this.app.workspace.iterateAllLeaves(cb)
+			(cb) => this.app.workspace.iterateAllLeaves(cb),
 		);
 		this.widthManager.applyLineWidth();
 
 		// Initialize width guides
 		this.guides = new WidthGuides(
 			(filePath) => getWidthForLeafPath(filePath, this.settings),
-			(leaf) => getFilePathForLeaf(leaf)
+			(leaf) => getFilePathForLeaf(leaf),
 		);
 
 		// Initialize LeafIconManager first (needed by PopupManager)
 		this.leafIconManager = new LeafIconManager(
 			() => this.settings,
 			(cb) => this.app.workspace.iterateAllLeaves(cb),
-			this.registerDomEvent.bind(this)
+			this.registerDomEvent.bind(this),
 		);
 
 		// Initialize PopupManager
@@ -70,7 +74,7 @@ export default class StatusBarVaultName extends Plugin {
 			this.widthManager,
 			this.guides,
 			(leaf) => this.leafIconManager.refresh(leaf),
-			(leaf, opts) => this.app.workspace.setActiveLeaf(leaf, opts)
+			(leaf, opts) => this.app.workspace.setActiveLeaf(leaf, opts),
 		);
 
 		// Link PopupManager to LeafIconManager
@@ -78,14 +82,19 @@ export default class StatusBarVaultName extends Plugin {
 
 		// Inject icons into all existing leaves, then watch for new ones
 		this.registerEvent(
-			this.app.workspace.on('layout-change', () => {
+			this.app.workspace.on("layout-change", () => {
 				this.widthManager.updateEditorWidths();
 				this.leafIconManager.injectAll();
-			})
+			}),
 		);
 
 		// Close any popup when clicking outside (main document)
-		this.registerDomEvent(document, 'click', (e) => this.popupManager.onDocumentClick(e, this.leafIconManager.getLeafIcons()));
+		this.registerDomEvent(document, "click", (e) =>
+			this.popupManager.onDocumentClick(
+				e,
+				this.leafIconManager.getLeafIcons(),
+			),
+		);
 
 		// Initial injection
 		this.app.workspace.onLayoutReady(() => {
@@ -107,7 +116,7 @@ export default class StatusBarVaultName extends Plugin {
 	async loadSettings(): Promise<void> {
 		this.settings = {
 			...DEFAULT_SETTINGS,
-			...await this.loadData()
+			...(await this.loadData()),
 		};
 		// compatibility fix
 		if (!this.settings.localWidths) this.settings.localWidths = {};
