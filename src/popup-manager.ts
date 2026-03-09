@@ -72,6 +72,9 @@ export class PopupManager {
 		this.savedCursor = null;
 	}
 
+	/**
+	 * Closes popups when clicking outside of them or their associated icons
+	 */
 	onDocumentClick(
 		e: MouseEvent,
 		leafIcons: Map<string, HTMLDivElement>,
