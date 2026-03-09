@@ -1,1 +1,1 @@
-fix: guides below sizing popup
+refactorisation 100% finished. simplification maps not needed → perfs improved
