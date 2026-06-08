@@ -20,12 +20,6 @@ The vault name appears in the status bar. Click it to open the vaults menu for q
 - **Enable Maximum Length**: Truncate the vault name if too long
 - **Maximum Length**: Max characters to display
 
-**Editor Line Width**
-
-- **Enable Line Width Control**: Show/hide the width control icons
-- **Line Width Color**: Color of the `<->` icon
-- **Restore cursor on popup close**: When enabled, closing the popup restores the cursor position and selection to where it was when the popup was opened
-
 ## Installation
 
 1. Copy files from the release
