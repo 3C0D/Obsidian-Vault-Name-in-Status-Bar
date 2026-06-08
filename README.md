@@ -3,33 +3,12 @@
 ## Key Features
 
 - **Vault Name in Status Bar:** See your vault name at a glance, with one-click access to the vaults menu.
-- **Per-Tab Line Width Control:** Each Markdown tab has its own width control icon. Adjust globally or lock any file to its own width.
 
 ## Vault Name
 
 The vault name appears in the status bar. Click it to open the vaults menu for quick switching. You can customize its color, font size, and maximum display length — or hide it entirely.
 
 ![alt text](Assets/vaultName.png)
-
-## Line Width Control
-
-Each Markdown tab has a `<->` icon in its top-right header. Click it to open a width slider (300px–1600px). Visual guides appear on both sides of the editor while adjusting.
-
-The slider works across all windows — including split panes and secondary windows.
-
-**Global mode (lock open):** the slider adjusts the width for all unlocked files.
-
-![line width](Assets/unlocked.png)
-
-**Local mode (lock closed):** the slider adjusts the width for this file only. A small lock badge appears on the icon as a reminder.
-
-![line width](Assets/locked.png)
-
-Clicking the lock again removes the local override and reverts to the global width.
-
-### Disabling the feature
-
-Disabling "Enable Line Width Control" in settings hides all icons and restores the default Obsidian line width. Re-enabling it restores your previous settings.
 
 ## Settings
 

@@ -19,6 +19,7 @@ function getVaultsConfigPath(): string | null {
       'obsidian',
       'obsidian.json'
     );
+  // Obsidian uses ~/.config on Linux; $XDG_CONFIG_HOME is not supported here
   if (Platform.isLinux) return path.join(userDir, '.config', 'obsidian', 'obsidian.json');
   return null;
 }

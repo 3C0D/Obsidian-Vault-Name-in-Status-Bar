@@ -1,7 +1,7 @@
-import { Plugin } from 'obsidian';
+import { addIcon, Plugin } from 'obsidian';
 import { Settings } from './settings.ts';
 import { vaultsMenu } from './menu.ts';
-import { DEFAULT_SETTINGS } from './variables.ts';
+import { DEFAULT_SETTINGS, vaults_picker } from './variables.ts';
 import type { SBVNSettings } from './interfaces.ts';
 import { VaultName } from './vault-name.ts';
 
@@ -11,6 +11,7 @@ export default class StatusBarVaultName extends Plugin {
 
   async onload(): Promise<void> {
     await this.loadSettings();
+    addIcon('buttonSVG', vaults_picker);
     this.addSettingTab(new Settings(this.app, this));
     const statusBar = this.app.statusBar.containerEl;
 

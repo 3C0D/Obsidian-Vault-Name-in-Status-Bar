@@ -99,7 +99,7 @@ export class VaultName {
    * Updates the tooltip for the vault name
    */
   updateTooltip(): void {
-    this.vaultNameEl.setAttribute('aria-label', 'vault name');
+    this.vaultNameEl.setAttribute('aria-label', this.getVaultName());
   }
 
   /**

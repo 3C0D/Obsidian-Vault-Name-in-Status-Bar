@@ -1,10 +1,7 @@
 import type { App } from 'obsidian';
-import { addIcon, Menu, FileSystemAdapter } from 'obsidian';
-import { vaults_picker } from './variables.ts';
+import { Menu, FileSystemAdapter } from 'obsidian';
 import { getVaultPaths } from './getVaults.ts';
 import type StatusBarVaultName from './main.ts';
-
-addIcon('buttonSVG', vaults_picker);
 
 /**
  * Creates and displays a context menu for vault management.
