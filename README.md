@@ -34,6 +34,7 @@ Disabling "Enable Line Width Control" in settings hides all icons and restores t
 ## Settings
 
 **Vault Name**
+
 - **Enable vault name**: Show/hide the vault name
 - **Vault Name Color**: Color of the vault name
 - **Font Size**: Font size of the vault name (in em)
@@ -41,6 +42,7 @@ Disabling "Enable Line Width Control" in settings hides all icons and restores t
 - **Maximum Length**: Max characters to display
 
 **Editor Line Width**
+
 - **Enable Line Width Control**: Show/hide the width control icons
 - **Line Width Color**: Color of the `<->` icon
 - **Restore cursor on popup close**: When enabled, closing the popup restores the cursor position and selection to where it was when the popup was opened
@@ -68,15 +70,16 @@ This plugin uses a template that automates the development and publication proce
 - After building, `styles.css` will appear in the root folder (this is normal for the release process).
 
 #### Development Options:
+
 1. **Inside the vault's plugins folder:**
-   - Delete the `.env` file.
-   - Run npm commands as usual.
+    - Delete the `.env` file.
+    - Run npm commands as usual.
 
 2. **Outside the vault:**
-   - Set the paths in the `.env` file:
-     - `TestVault` for development
-     - `RealVault` for production simulation
-   - Necessary files will be automatically copied to the targeted vault.
+    - Set the paths in the `.env` file:
+        - `TestVault` for development
+        - `RealVault` for production simulation
+    - Necessary files will be automatically copied to the targeted vault.
 
 ### Available Commands
 
